@@ -8,104 +8,18 @@ let storage: any;
 const isFirebaseAvailable = process.env.FIREBASE_SERVICE_ACCOUNT ? true : false;
 const isDatabaseAvailable = process.env.DATABASE_URL ? true : false;
 
-export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  getAllUsers(): Promise<User[]>;
-  createUser(user: InsertUser): Promise<User>;
-  updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
-  updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
-  deleteUser(id: string): Promise<boolean>;
-  
-  getArticles(): Promise<Article[]>;
-  getArticle(id: string): Promise<Article | undefined>;
-  createArticle(article: InsertArticle): Promise<Article>;
-  updateArticle(id: string, article: Partial<InsertArticle>): Promise<Article | undefined>;
-  deleteArticle(id: string): Promise<boolean>;
-  
-  getSettings(): Promise<SiteSettings>;
-  updateSettings(settings: Partial<SiteSettings>): Promise<SiteSettings>;
-  
-  getVisitorStats(): Promise<VisitorStats>;
-  incrementVisitors(): Promise<VisitorStats>;
-  resetHourlyData(): Promise<VisitorStats>;
-  resetTrafficSources(): Promise<VisitorStats>;
-  resetDeviceTypes(): Promise<VisitorStats>;
-  resetTopPages(): Promise<VisitorStats>;
-  resetEngagementMetrics(): Promise<VisitorStats>;
-  resetSocialMediaStats(): Promise<VisitorStats>;
-  resetTotalVisitors(): Promise<VisitorStats>;
-  
-  getTeamMembers(): Promise<TeamMember[]>;
-  getTeamMember(id: string): Promise<TeamMember | undefined>;
-  createTeamMember(member: InsertTeamMember): Promise<TeamMember>;
-  updateTeamMember(id: string, member: Partial<InsertTeamMember>): Promise<TeamMember | undefined>;
-  deleteTeamMember(id: string): Promise<boolean>;
-  
-  getPricingPackages(): Promise<PricingPackage[]>;
-  getPricingPackage(id: string): Promise<PricingPackage | undefined>;
-  createPricingPackage(pkg: InsertPricingPackage): Promise<PricingPackage>;
-  updatePricingPackage(id: string, pkg: Partial<InsertPricingPackage>): Promise<PricingPackage | undefined>;
-  deletePricingPackage(id: string): Promise<boolean>;
-  
-  getProjectDiscussion(): Promise<ProjectDiscussion | undefined>;
-  updateProjectDiscussion(data: InsertProjectDiscussion): Promise<ProjectDiscussion>;
-  
-  getBookingRequests(): Promise<BookingRequest[]>;
-  createBookingRequest(booking: InsertBookingRequest): Promise<BookingRequest>;
-  updateBookingRequest(id: string, booking: Partial<InsertBookingRequest>): Promise<BookingRequest | undefined>;
-  deleteBookingRequest(id: string): Promise<boolean>;
-  resetBookingRequests(): Promise<void>;
-  
-  getSocialMediaAnalytics(): Promise<SocialMediaAnalytics[]>;
-  getSocialMediaAnalytic(platform: string): Promise<SocialMediaAnalytics | undefined>;
-  updateSocialMediaAnalytics(platform: string, data: Partial<InsertSocialMediaAnalytics>): Promise<SocialMediaAnalytics>;
-  resetSocialMediaAnalytics(): Promise<void>;
-
-  getSocialMediaIntegrations(): Promise<SocialMediaIntegration[]>;
-  getSocialMediaIntegration(platform: string): Promise<SocialMediaIntegration | undefined>;
-  updateSocialMediaIntegration(platform: string, data: Partial<InsertSocialMediaIntegration>): Promise<SocialMediaIntegration>;
-  
-  createOneTimePricingRequest(request: InsertOneTimePricingRequest): Promise<OneTimePricingRequest>;
-  getOneTimePricingRequests(): Promise<OneTimePricingRequest[]>;
-  updateOneTimePricingRequest(id: string, request: Partial<InsertOneTimePricingRequest>): Promise<OneTimePricingRequest | undefined>;
-  deleteOneTimePricingRequest(id: string): Promise<boolean>;
-  
-  // Home Page Content Management
-  getHeroContent(): Promise<HeroContent | undefined>;
-  updateHeroContent(data: Partial<InsertHeroContent>): Promise<HeroContent>;
-  
-  getAboutContent(): Promise<AboutContent | undefined>;
-  updateAboutContent(data: Partial<InsertAboutContent>): Promise<AboutContent>;
-  
-  getAboutValues(): Promise<AboutValue[]>;
-  createAboutValue(value: InsertAboutValue): Promise<AboutValue>;
-  updateAboutValue(id: string, value: Partial<InsertAboutValue>): Promise<AboutValue | undefined>;
-  deleteAboutValue(id: string): Promise<boolean>;
-  
-  getServicesContent(): Promise<ServicesContent | undefined>;
-  updateServicesContent(data: Partial<InsertServicesContent>): Promise<ServicesContent>;
-  
-  getServiceItems(): Promise<ServiceItem[]>;
-  createServiceItem(item: InsertServiceItem): Promise<ServiceItem>;
-  updateServiceItem(id: string, item: Partial<InsertServiceItem>): Promise<ServiceItem | undefined>;
-  deleteServiceItem(id: string): Promise<boolean>;
-  
-  getSolutionsContent(): Promise<SolutionsContent | undefined>;
-  updateSolutionsContent(data: Partial<InsertSolutionsContent>): Promise<SolutionsContent>;
-  
-  getSolutionItems(): Promise<SolutionItem[]>;
-  createSolutionItem(item: InsertSolutionItem): Promise<SolutionItem>;
-  updateSolutionItem(id: string, item: Partial<InsertSolutionItem>): Promise<SolutionItem | undefined>;
-  deleteSolutionItem(id: string): Promise<boolean>;
-  
-  // Popup Forms
-  getPopupForms(): Promise<PopupForm[]>;
-  getPopupForm(id: string): Promise<PopupForm | undefined>;
-  getActivePopupForm(): Promise<PopupForm | undefined>;
-  createPopupForm(form: InsertPopupForm): Promise<PopupForm>;
-  updatePopupForm(id: string, form: Partial<InsertPopupForm>): Promise<PopupForm | undefined>;
-  deletePopupForm(id: string): Promise<boolean>;
+if (isFirebaseAvailable) {
+  const { FirebaseStorage } = await import("./firebase-storage.js");
+  const fbStore = new FirebaseStorage();
+  await fbStore.waitForInit();
+  storage = fbStore;
+  console.log("⚡ Using Firebase Firestore storage");
+} else if (isDatabaseAvailable) {
+  storage = new DatabaseStorage();
+  console.log("⚡ Using PostgreSQL storage (DatabaseStorage)");
+} else {
+  storage = new MemStorage();
+  console.log("⚡ Using in-memory storage (MemStorage)");
 }
 
 export class MemStorage implements IStorage {

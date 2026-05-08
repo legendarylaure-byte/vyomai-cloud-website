@@ -5,7 +5,6 @@ import rateLimit from "express-rate-limit";
 import { registerRoutes } from "./routes.js";
 import { serveStatic } from "./static.js";
 import { createServer } from "http";
-import "dotenv/config";
 
 const app = express();
 const httpServer = createServer(app);

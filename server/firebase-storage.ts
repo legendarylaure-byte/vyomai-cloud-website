@@ -14,7 +14,6 @@ import type {
   ServiceItem, InsertServiceItem, SolutionsContent, InsertSolutionsContent,
   SolutionItem, InsertSolutionItem,
 } from "../shared/schema.js";
-import type { IStorage } from "./storage.js";
 
 function doc(id: string = "default") {
   return firestore!.collection("settings").doc(id);
@@ -24,13 +23,18 @@ function col(name: string) {
   return firestore!.collection(name);
 }
 
-export class FirebaseStorage implements IStorage {
+export class FirebaseStorage {
   private resetCodes = new Map<string, { code: string; expiresAt: number }>();
+  private initPromise: Promise<void>;
 
   constructor() {
-    this.initializeDefaults().catch(err =>
-      console.error("Firebase init error:", err)
-    );
+    this.initPromise = this.initializeDefaults().catch(err => {
+      console.error("Firebase init error:", err);
+    });
+  }
+
+  async waitForInit() {
+    await this.initPromise;
   }
 
   private async initializeDefaults() {
