@@ -3,8 +3,9 @@ import { randomUUID } from "crypto";
 import bcryptjs from "bcryptjs";
 import { DatabaseStorage } from "./db-storage.js";
 
-// Try to use database storage, fall back to memory if DB not available
+// Try Firebase first, then PostgreSQL, fall back to memory
 let storage: any;
+const isFirebaseAvailable = process.env.FIREBASE_SERVICE_ACCOUNT ? true : false;
 const isDatabaseAvailable = process.env.DATABASE_URL ? true : false;
 
 export interface IStorage {
@@ -1161,10 +1162,16 @@ export class MemStorage implements IStorage {
   }
 }
 
-if (isDatabaseAvailable) {
+if (isFirebaseAvailable) {
+  const { FirebaseStorage } = await import("./firebase-storage.js");
+  storage = new FirebaseStorage();
+  console.log("Using Firebase Firestore storage");
+} else if (isDatabaseAvailable) {
   storage = new DatabaseStorage();
+  console.log("Using PostgreSQL storage (DatabaseStorage)");
 } else {
   storage = new MemStorage();
+  console.log("Using in-memory storage (MemStorage)");
 }
 
 export { storage };

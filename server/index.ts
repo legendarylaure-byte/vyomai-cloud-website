@@ -61,20 +61,17 @@ app.post("/api/admin/login", loginLimiter, (req, res, next) => {
   next();
 });
 
-// Session configuration for persistent auth across serverless invocations
+// Session configuration
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
-import { pool } from "./db.js";
+import createMemoryStore from "memorystore";
 
-const PgSession = connectPgSimple(session);
+const MemoryStore = createMemoryStore(session);
 
 app.use(
   session({
-    store: pool ? new PgSession({
-      pool: pool,
-      tableName: "session",
-      createTableIfMissing: true,
-    }) : undefined,
+    store: new MemoryStore({
+      checkPeriod: 86400000, // prune expired entries every 24h
+    }),
     secret: process.env.SESSION_SECRET || (() => { throw new Error("SESSION_SECRET environment variable is required"); })(),
     resave: false,
     saveUninitialized: false,
