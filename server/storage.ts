@@ -1,26 +1,116 @@
-import { type User, type InsertUser, type Article, type InsertArticle, type SiteSettings, type VisitorStats, type TeamMember, type InsertTeamMember, type PricingPackage, type InsertPricingPackage, type ProjectDiscussion, type InsertProjectDiscussion, type BookingRequest, type InsertBookingRequest, type SocialMediaAnalytics, type InsertSocialMediaAnalytics, type SocialMediaIntegration, type InsertSocialMediaIntegration, type OneTimePricingRequest, type InsertOneTimePricingRequest, type HeroContent, type InsertHeroContent, type AboutContent, type InsertAboutContent, type AboutValue, type InsertAboutValue, type ServicesContent, type InsertServicesContent, type ServiceItem, type InsertServiceItem, type SolutionsContent, type InsertSolutionsContent, type SolutionItem, type InsertSolutionItem, type PopupForm, type InsertPopupForm } from "../shared/schema.js";
+import { type User, type InsertUser, type Article, type InsertArticle, type SiteSettings, type VisitorStats, type TeamMember, type InsertTeamMember, type PricingPackage, type InsertPricingPackage, type ProjectDiscussion, type InsertProjectDiscussion, type BookingRequest, type InsertBookingRequest, type SocialMediaAnalytics, type InsertSocialMediaAnalytics, type SocialMediaIntegration, type InsertSocialMediaIntegration, type OneTimePricingRequest, type InsertOneTimePricingRequest, type CustomerInquiry, type InsertCustomerInquiry, type HeroContent, type InsertHeroContent, type AboutContent, type InsertAboutContent, type AboutValue, type InsertAboutValue, type ServicesContent, type InsertServicesContent, type ServiceItem, type InsertServiceItem, type SolutionsContent, type InsertSolutionsContent, type SolutionItem, type InsertSolutionItem, type PopupForm, type InsertPopupForm } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import bcryptjs from "bcryptjs";
-import { DatabaseStorage } from "./db-storage.js";
+export interface IStorage {
+  getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  getAllUsers(): Promise<User[]>;
+  updateUser(id: string, data: Partial<InsertUser>): Promise<User | undefined>;
+  updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
+  deleteUser(id: string): Promise<boolean>;
+  storeResetCode(email: string, code: string): Promise<void>;
+  verifyResetCode(email: string, code: string): Promise<boolean>;
+  resetPasswordByEmail(email: string, hashedPassword: string): Promise<boolean>;
 
-// Try Firebase first, then PostgreSQL, fall back to memory
+  getArticles(): Promise<Article[]>;
+  getArticle(id: string): Promise<Article | undefined>;
+  createArticle(article: InsertArticle): Promise<Article>;
+  updateArticle(id: string, article: Partial<InsertArticle>): Promise<Article | undefined>;
+  deleteArticle(id: string): Promise<boolean>;
+
+  getSettings(): Promise<SiteSettings>;
+  updateSettings(settings: Partial<SiteSettings>): Promise<SiteSettings>;
+
+  getVisitorStats(): Promise<VisitorStats>;
+  incrementVisitors(): Promise<VisitorStats>;
+  resetHourlyData(): Promise<VisitorStats>;
+  resetTrafficSources(): Promise<VisitorStats>;
+  resetDeviceTypes(): Promise<VisitorStats>;
+  resetTopPages(): Promise<VisitorStats>;
+  resetEngagementMetrics(): Promise<VisitorStats>;
+  resetSocialMediaStats(): Promise<VisitorStats>;
+  resetTotalVisitors(): Promise<VisitorStats>;
+
+  getTeamMembers(): Promise<TeamMember[]>;
+  getTeamMember(id: string): Promise<TeamMember | undefined>;
+  createTeamMember(member: InsertTeamMember): Promise<TeamMember>;
+  updateTeamMember(id: string, member: Partial<InsertTeamMember>): Promise<TeamMember | undefined>;
+  deleteTeamMember(id: string): Promise<boolean>;
+
+  getPricingPackages(): Promise<PricingPackage[]>;
+  getPricingPackage(id: string): Promise<PricingPackage | undefined>;
+  createPricingPackage(pkg: InsertPricingPackage): Promise<PricingPackage>;
+  updatePricingPackage(id: string, pkg: Partial<InsertPricingPackage>): Promise<PricingPackage | undefined>;
+  deletePricingPackage(id: string): Promise<boolean>;
+
+  getProjectDiscussion(): Promise<ProjectDiscussion | undefined>;
+  updateProjectDiscussion(data: InsertProjectDiscussion): Promise<ProjectDiscussion>;
+
+  getBookingRequests(): Promise<BookingRequest[]>;
+  createBookingRequest(booking: InsertBookingRequest): Promise<BookingRequest>;
+  updateBookingRequest(id: string, booking: Partial<InsertBookingRequest>): Promise<BookingRequest | undefined>;
+  deleteBookingRequest(id: string): Promise<boolean>;
+  resetBookingRequests(): Promise<void>;
+
+  getOneTimePricingRequests(): Promise<OneTimePricingRequest[]>;
+  createOneTimePricingRequest(request: InsertOneTimePricingRequest): Promise<OneTimePricingRequest>;
+  updateOneTimePricingRequest(id: string, request: Partial<InsertOneTimePricingRequest>): Promise<OneTimePricingRequest | undefined>;
+  deleteOneTimePricingRequest(id: string): Promise<boolean>;
+
+  getSocialMediaAnalytics(): Promise<SocialMediaAnalytics[]>;
+  getSocialMediaAnalytic(platform: string): Promise<SocialMediaAnalytics | undefined>;
+  updateSocialMediaAnalytics(platform: string, data: Partial<InsertSocialMediaAnalytics>): Promise<SocialMediaAnalytics>;
+  resetSocialMediaAnalytics(): Promise<void>;
+
+  getSocialMediaIntegrations(): Promise<SocialMediaIntegration[]>;
+  getSocialMediaIntegration(platform: string): Promise<SocialMediaIntegration | undefined>;
+  updateSocialMediaIntegration(platform: string, data: Partial<InsertSocialMediaIntegration>): Promise<SocialMediaIntegration>;
+
+  getCustomerInquiries(): Promise<CustomerInquiry[]>;
+  createCustomerInquiry(inquiry: InsertCustomerInquiry): Promise<CustomerInquiry>;
+  updateCustomerInquiry(id: string, inquiry: Partial<InsertCustomerInquiry>): Promise<CustomerInquiry | undefined>;
+  deleteCustomerInquiry(id: string): Promise<boolean>;
+
+  getHeroContent(): Promise<HeroContent | undefined>;
+  updateHeroContent(data: Partial<InsertHeroContent>): Promise<HeroContent>;
+  getAboutContent(): Promise<AboutContent | undefined>;
+  updateAboutContent(data: Partial<InsertAboutContent>): Promise<AboutContent>;
+  getAboutValues(): Promise<AboutValue[]>;
+  createAboutValue(value: InsertAboutValue): Promise<AboutValue>;
+  updateAboutValue(id: string, value: Partial<InsertAboutValue>): Promise<AboutValue | undefined>;
+  deleteAboutValue(id: string): Promise<boolean>;
+  getServicesContent(): Promise<ServicesContent | undefined>;
+  updateServicesContent(data: Partial<InsertServicesContent>): Promise<ServicesContent>;
+  getServiceItems(): Promise<ServiceItem[]>;
+  createServiceItem(item: InsertServiceItem): Promise<ServiceItem>;
+  updateServiceItem(id: string, item: Partial<InsertServiceItem>): Promise<ServiceItem | undefined>;
+  deleteServiceItem(id: string): Promise<boolean>;
+  getSolutionsContent(): Promise<SolutionsContent | undefined>;
+  updateSolutionsContent(data: Partial<InsertSolutionsContent>): Promise<SolutionsContent>;
+  getSolutionItems(): Promise<SolutionItem[]>;
+  createSolutionItem(item: InsertSolutionItem): Promise<SolutionItem>;
+  updateSolutionItem(id: string, item: Partial<InsertSolutionItem>): Promise<SolutionItem | undefined>;
+  deleteSolutionItem(id: string): Promise<boolean>;
+
+  getPopupForms(): Promise<PopupForm[]>;
+  getPopupForm(id: string): Promise<PopupForm | undefined>;
+  getActivePopupForm(): Promise<PopupForm | undefined>;
+  createPopupForm(form: InsertPopupForm): Promise<PopupForm>;
+  updatePopupForm(id: string, form: Partial<InsertPopupForm>): Promise<PopupForm | undefined>;
+  deletePopupForm(id: string): Promise<boolean>;
+
+  getSocialMediaSyncLogs(platform?: string, limit?: number): Promise<any[]>;
+  createSocialMediaSyncLog(log: any): Promise<any>;
+  getSocialMediaApiConfigs(): Promise<any[]>;
+  getSocialMediaApiConfig(platform: string): Promise<any | undefined>;
+  updateSocialMediaApiConfig(platform: string, config: any): Promise<any>;
+  deleteSocialMediaApiConfig(platform: string): Promise<boolean>;
+}
+
 let storage: any;
 const isFirebaseAvailable = process.env.FIREBASE_SERVICE_ACCOUNT ? true : false;
-const isDatabaseAvailable = process.env.DATABASE_URL ? true : false;
-
-if (isFirebaseAvailable) {
-  const { FirebaseStorage } = await import("./firebase-storage.js");
-  const fbStore = new FirebaseStorage();
-  await fbStore.waitForInit();
-  storage = fbStore;
-  console.log("⚡ Using Firebase Firestore storage");
-} else if (isDatabaseAvailable) {
-  storage = new DatabaseStorage();
-  console.log("⚡ Using PostgreSQL storage (DatabaseStorage)");
-} else {
-  storage = new MemStorage();
-  console.log("⚡ Using in-memory storage (MemStorage)");
-}
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
@@ -44,6 +134,7 @@ export class MemStorage implements IStorage {
   private solutionsContent: SolutionsContent | null;
   private solutionItems: Map<string, SolutionItem>;
   private popupForms: Map<string, PopupForm>;
+  private customerInquiries: Map<string, CustomerInquiry>;
 
   constructor() {
     this.users = new Map();
@@ -67,6 +158,7 @@ export class MemStorage implements IStorage {
     this.solutionsContent = null;
     this.solutionItems = new Map();
     this.popupForms = new Map();
+    this.customerInquiries = new Map();
     
     // Initialize default home page content
     this.initializeHomePageDefaults();
@@ -82,7 +174,7 @@ export class MemStorage implements IStorage {
     }
     
     // Hash password synchronously using bcryptjs (for initialization only)
-    const hashedPassword = bcryptjs.hashSync(adminPassword, 10);
+    const hashedPassword = bcryptjs.hashSync(adminPassword, 12);
     
     const adminId = randomUUID();
     this.users.set(adminId, {
@@ -92,18 +184,7 @@ export class MemStorage implements IStorage {
       email: adminEmail,
     });
     
-    // Test user removed for security - use admin account or create via admin panel if needed
-    if (process.env.NODE_ENV !== "production" && process.env.CREATE_TEST_USER === "true") {
-      const testPassword = bcryptjs.hashSync("test123", 10);
-      const testUserId = randomUUID();
-      this.users.set(testUserId, {
-        id: testUserId,
-        username: "testuser",
-        password: testPassword,
-        email: "test@example.com",
-      });
-      console.log("⚠️ Test user 'testuser' created (CREATE_TEST_USER=true)");
-    }
+    // Test user creation removed for security - removed testuser with hardcoded password
     
     this.settings = {
       companyName: "VyomAi Cloud Pvt. Ltd",
@@ -402,7 +483,7 @@ export class MemStorage implements IStorage {
   }
 
   async resetPasswordByEmail(email: string, hashedPassword: string): Promise<boolean> {
-    const user = Array.from(this.users.values()).find(u => u.username === "admin");
+    const user = Array.from(this.users.values()).find(u => u.email === email);
     if (!user) return false;
     
     const updated: User = { ...user, password: hashedPassword };
@@ -673,6 +754,36 @@ export class MemStorage implements IStorage {
 
   async deleteOneTimePricingRequest(id: string): Promise<boolean> {
     return this.oneTimePricingRequests.delete(id);
+  }
+
+  async getCustomerInquiries(): Promise<CustomerInquiry[]> {
+    return Array.from(this.customerInquiries.values()).sort(
+      (a, b) => new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime()
+    );
+  }
+
+  async createCustomerInquiry(inquiry: InsertCustomerInquiry): Promise<CustomerInquiry> {
+    const id = randomUUID();
+    const newInquiry: CustomerInquiry = {
+      id,
+      ...inquiry,
+      status: inquiry.status || "new",
+      createdAt: new Date().toISOString(),
+    } as CustomerInquiry;
+    this.customerInquiries.set(id, newInquiry);
+    return newInquiry;
+  }
+
+  async updateCustomerInquiry(id: string, inquiry: Partial<InsertCustomerInquiry>): Promise<CustomerInquiry | undefined> {
+    const existing = this.customerInquiries.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...inquiry };
+    this.customerInquiries.set(id, updated);
+    return updated;
+  }
+
+  async deleteCustomerInquiry(id: string): Promise<boolean> {
+    return this.customerInquiries.delete(id);
   }
 
   async getSocialMediaIntegrations(): Promise<SocialMediaIntegration[]> {
@@ -1074,19 +1185,48 @@ export class MemStorage implements IStorage {
   async deletePopupForm(id: string): Promise<boolean> {
     return this.popupForms.delete(id);
   }
+
+  // Social Media Sync Logs stubs
+  async getSocialMediaSyncLogs(_platform?: string, _limit?: number): Promise<any[]> {
+    return [];
+  }
+
+  async createSocialMediaSyncLog(_log: any): Promise<any> {
+    return {};
+  }
+
+  async getSocialMediaApiConfigs(): Promise<any[]> {
+    return [];
+  }
+
+  async getSocialMediaApiConfig(_platform: string): Promise<any | undefined> {
+    return undefined;
+  }
+
+  async updateSocialMediaApiConfig(_platform: string, _config: any): Promise<any> {
+    return {};
+  }
+
+  async deleteSocialMediaApiConfig(_platform: string): Promise<boolean> {
+    return true;
+  }
 }
 
 if (isFirebaseAvailable) {
-  const { FirebaseStorage } = await import("./firebase-storage.js");
-  storage = new FirebaseStorage();
-  console.log("Using Firebase Firestore storage");
-} else if (isDatabaseAvailable) {
-  storage = new DatabaseStorage();
-  console.log("Using PostgreSQL storage (DatabaseStorage)");
+  try {
+    const { FirebaseStorage } = await import("./firebase-storage.js");
+    const fbStore = new FirebaseStorage();
+    await fbStore.waitForInit();
+    storage = fbStore;
+    console.log("⚡ Using Firebase Firestore storage");
+  } catch (err) {
+    console.error("❌ Firebase init failed, falling back to in-memory:", err);
+    storage = new MemStorage();
+    console.log("⚡ Using in-memory storage (MemStorage) [fallback]");
+  }
 } else {
   storage = new MemStorage();
-  console.log("Using in-memory storage (MemStorage)");
+  console.log("⚡ Using in-memory storage (MemStorage)");
 }
 
 export { storage };
-export { DatabaseStorage };

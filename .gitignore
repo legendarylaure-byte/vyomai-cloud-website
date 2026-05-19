@@ -8,3 +8,7 @@ vite.config.ts.*
 .vercel
 .env*.local
 .local/
+keys/
+Keys/
+QA_REPORT.md
+Website_VyomAi-main.zip

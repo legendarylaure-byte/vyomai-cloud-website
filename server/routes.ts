@@ -34,7 +34,10 @@ if (process.env.OPENAI_API_KEY) {
 if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
   throw new Error("SESSION_SECRET environment variable is required in production");
 }
-const JWT_SECRET = process.env.JWT_SECRET || process.env.SESSION_SECRET || (() => { throw new Error("JWT_SECRET or SESSION_SECRET environment variable is required"); })();
+if (!process.env.JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required (must be separate from SESSION_SECRET)");
+}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Exchange rate caching (24 hours)
 interface ExchangeRateCache {
@@ -107,12 +110,20 @@ function authMiddleware(req: Request, res: Response, next: NextFunction) {
   const token = authHeader.substring(7);
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { username: string };
-    (req as any).user = { username: decoded.username };
+    const decoded = jwt.verify(token, JWT_SECRET) as { username: string; role: string };
+    (req as any).user = { username: decoded.username, role: decoded.role };
     next();
   } catch (error) {
     return res.status(401).json({ error: "Invalid token" });
   }
+}
+
+function adminMiddleware(req: Request, res: Response, next: NextFunction) {
+  const user = (req as any).user;
+  if (!user || user.role !== "vyom_admin") {
+    return res.status(403).json({ error: "Forbidden: vyom_admin role required" });
+  }
+  next();
 }
 
 export async function registerRoutes(
@@ -402,9 +413,19 @@ Always maintain a balance between being professional and approachable. Reference
     }
   });
 
+  const loginSchema = z.object({
+    username: z.string().min(1).max(64),
+    password: z.string().min(1).max(128),
+    twoFactorToken: z.string().optional(),
+  });
+
   app.post("/api/admin/login", async (req, res) => {
     try {
-      const { username, password, twoFactorToken } = req.body;
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body" });
+      }
+      const { username, password, twoFactorToken } = parsed.data;
 
       const user = await storage.getUserByUsername(username);
 
@@ -431,7 +452,7 @@ Always maintain a balance between being professional and approachable. Reference
         }
       }
 
-      const token = jwt.sign({ username }, JWT_SECRET, { expiresIn: '24h' });
+      const token = jwt.sign({ username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '24h' });
 
       res.json({ success: true, token });
     } catch (error) {
@@ -471,25 +492,6 @@ Always maintain a balance between being professional and approachable. Reference
         return res.status(400).json({ error: error.errors });
       }
       res.status(500).json({ error: "Failed to request password reset" });
-    }
-  });
-
-  // Development endpoint - get reset code for testing
-  app.get("/api/admin/test-reset-code/:email", async (req, res) => {
-    try {
-      const { email } = req.params;
-      const user = await storage.getUserByEmail(email);
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
-      }
-
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
-      await storage.storeResetCode(email, code);
-
-
-      res.json({ success: true, code, message: "Test code generated (check console logs)" });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to generate test code" });
     }
   });
 
@@ -544,7 +546,12 @@ Always maintain a balance between being professional and approachable. Reference
   // 2FA Setup route
   app.post("/api/admin/setup-2fa", authMiddleware, async (req, res) => {
     try {
-      const user = await storage.getUserByUsername("admin");
+      const currentUser = (req as any).user;
+      const username = currentUser?.username;
+      if (!username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+      const user = await storage.getUserByUsername(username);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
@@ -571,8 +578,19 @@ Always maintain a balance between being professional and approachable. Reference
         return res.status(401).json({ error: "Invalid verification token" });
       }
 
-      // Save the secret to user (in production, update database)
-      // For now, just confirm it's enabled
+      // Persist 2FA secret to user record
+      const currentUser = (req as any).user;
+      const username = currentUser?.username;
+      if (username) {
+        const user = await storage.getUserByUsername(username);
+        if (user) {
+          await storage.updateUser(user.id, {
+            twoFactorSecret: secret,
+            twoFactorEnabled: true,
+          } as any);
+        }
+      }
+
       res.json({ success: true, message: "2FA enabled successfully" });
     } catch (error) {
       console.error("2FA enable error:", error);
@@ -2639,65 +2657,6 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
     } catch (error) {
       console.error("Error reordering solution items:", error);
       res.status(500).json({ error: "Failed to reorder solution items" });
-    }
-  });
-
-  // DEVELOPMENT: Test endpoint to seed dummy data for one month
-  app.post("/api/test/seed-dummy-data", async (req, res) => {
-    try {
-      console.log("Seeding dummy data for testing...");
-
-      // Add dummy inquiries for the past 30 days
-      const inquiryTypes = ["contact", "booking", "project_discussion", "custom_solution"];
-      const names = ["Raj Kumar", "Priya Sharma", "Anil Patel", "Neha Singh", "Vikram Gupta", "Anjali Verma", "Rohit Kumar", "Sneha Desai"];
-      const domains = ["@gmail.com", "@yahoo.com", "@outlook.com", "@company.com"];
-
-      for (let i = 0; i < 45; i++) {
-        await storage.createCustomerInquiry({
-          name: names[Math.floor(Math.random() * names.length)],
-          email: `user${i}@${domains[Math.floor(Math.random() * domains.length)]}`,
-          phone: `+977-98${String(Math.floor(Math.random() * 99999999)).padStart(8, '0')}`,
-          inquiryType: inquiryTypes[Math.floor(Math.random() * inquiryTypes.length)],
-          message: `This is a test inquiry message for report testing. Sample message ${i}.`,
-        });
-      }
-
-      console.log("✓ Added 45 test inquiries");
-
-      // Add social media analytics with fixed timestamp handling
-      const platforms = [
-        { name: "linkedin", followers: 1250, engagement: 4.2, impressions: 15000, likes: 650 },
-        { name: "instagram", followers: 2100, engagement: 6.8, impressions: 28000, likes: 1900 },
-        { name: "facebook", followers: 3400, engagement: 3.1, impressions: 22000, likes: 680 },
-        { name: "youtube", followers: 890, engagement: 8.5, impressions: 45000, likes: 3825 },
-        { name: "twitter", followers: 560, engagement: 2.4, impressions: 8900, likes: 213 },
-        { name: "whatsapp", followers: 4200, engagement: 12.3, impressions: 12000, likes: 1476 },
-      ];
-
-      for (const p of platforms) {
-        await storage.updateSocialMediaAnalytics(p.name, {
-          followersCount: String(p.followers),
-          engagementRate: String(p.engagement),
-          impressions: String(p.impressions),
-          likes: String(p.likes),
-          shares: "0",
-          comments: "0",
-          postsCount: "0",
-        });
-      }
-
-      console.log("✓ Added social media analytics for 6 platforms");
-
-      res.json({
-        success: true,
-        message: "Dummy data seeded successfully - 45 customer inquiries + 6 platforms analytics for 1 month",
-        inquiries: 45,
-        platforms: platforms.length,
-        note: "Ready for report generation. Use POST /api/admin/reports/generate-and-send to create comprehensive analytics report."
-      });
-    } catch (error) {
-      console.error("Seed error:", error);
-      res.status(500).json({ error: "Failed to seed dummy data", details: String(error) });
     }
   });
 

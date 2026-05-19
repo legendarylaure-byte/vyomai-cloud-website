@@ -15,12 +15,17 @@ import type {
   SolutionItem, InsertSolutionItem,
 } from "../shared/schema.js";
 
+function getFirestore() {
+  if (!firestore) throw new Error("Firestore not initialized (firebase is null)");
+  return firestore;
+}
+
 function doc(id: string = "default") {
-  return firestore!.collection("settings").doc(id);
+  return getFirestore().collection("settings").doc(id);
 }
 
 function col(name: string) {
-  return firestore!.collection(name);
+  return getFirestore().collection(name);
 }
 
 export class FirebaseStorage {
@@ -30,6 +35,7 @@ export class FirebaseStorage {
   constructor() {
     this.initPromise = this.initializeDefaults().catch(err => {
       console.error("Firebase init error:", err);
+      throw err;
     });
   }
 
@@ -57,7 +63,7 @@ export class FirebaseStorage {
     }
     const snap = await col("users").where("username", "==", adminUsername).limit(1).get();
     if (snap.empty) {
-      const hashed = bcryptjs.hashSync(adminPassword, 10);
+      const hashed = bcryptjs.hashSync(adminPassword, 12);
       await col("users").doc(randomUUID()).set({
         id: randomUUID(),
         username: adminUsername,
@@ -282,12 +288,16 @@ export class FirebaseStorage {
   }
   async getAllUsers() {
     const snap = await col("users").get();
-    return snap.docs.map(d => d.data() as User);
+    return snap.docs.map(d => {
+      const data = d.data() as User;
+      return { ...data, password: "[REDACTED]" } as User;
+    });
   }
   async createUser(data: InsertUser) {
+    const { password, ...safe } = data;
     const user: User = { ...data, id: randomUUID(), role: data.role || "admin", permissions: data.permissions || "[]", createdAt: new Date().toISOString() } as User;
     await col("users").doc(user.id).set(user);
-    return user;
+    return { ...user, password: "[REDACTED]" } as User;
   }
   async updateUser(id: string, data: Partial<InsertUser>) {
     const docRef = col("users").doc(id);
