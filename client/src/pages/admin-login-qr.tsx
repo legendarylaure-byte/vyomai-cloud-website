@@ -132,9 +132,8 @@ export default function AdminLoginQR() {
     try {
       const result = await apiRequest("POST", "/api/admin/login", data);
       if (result.success) {
-        // Store the server-generated token immediately
         localStorage.setItem("vyomai-admin-token", result.token);
-        setShowQRAuth(true);
+        setLocation("/admin/dashboard");
       }
     } catch (error) {
       toast({

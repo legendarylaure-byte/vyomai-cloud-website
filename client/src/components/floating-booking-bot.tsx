@@ -50,6 +50,7 @@ export function FloatingBookingBot() {
         name: formData.name,
         email: formData.email,
         company: formData.companyOrPersonal,
+        subject: "AI Solution Booking",
         message: formData.message,
       });
       toast({ title: "Booking request sent successfully! We'll contact you soon." });

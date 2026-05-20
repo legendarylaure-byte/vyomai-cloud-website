@@ -47,8 +47,9 @@ export function ProjectDiscussionSection() {
         inquiryType: "project_discussion",
         name: data.name,
         email: data.email,
+        company: data.budget ? `Budget: ${data.budget}` : undefined,
         subject: "Project Discussion Request",
-        message: `Budget: ${data.budget || "Not specified"}\n\n${data.projectDescription}`,
+        message: data.projectDescription,
       });
 
       toast({

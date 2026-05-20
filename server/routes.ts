@@ -1338,14 +1338,45 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       const validated = insertCustomerInquirySchema.parse(req.body);
       const inquiry = await storage.createCustomerInquiry(validated);
 
-      // Send email notification (await to verify delivery)
-      // This handles 'contact', 'custom_solution', 'booking', and 'project_discussion'
-      await sendContactFormEmail({
-        name: validated.name,
-        email: validated.email,
-        subject: validated.subject || `New ${validated.inquiryType.replace('_', ' ')} Inquiry`,
-        message: validated.message,
-      });
+      // If booking type, mirror to booking requests so admin Bookings page sees it
+      if (validated.inquiryType === "booking") {
+        storage.createBookingRequest({
+          name: validated.name,
+          email: validated.email,
+          companyOrPersonal: validated.company || "",
+          message: validated.message,
+        }).catch((err: any) => console.error("Failed to mirror booking request:", err));
+      }
+
+      // Send email notification — non-blocking, never fails the response
+      (async () => {
+        try {
+          if (validated.inquiryType === "booking") {
+            await sendBookingConfirmationEmail({
+              name: validated.name,
+              email: validated.email,
+              companyOrPersonal: validated.company || "",
+              message: validated.message,
+            });
+          } else if (validated.inquiryType === "project_discussion") {
+            await sendContactFormEmail({
+              name: validated.name,
+              email: validated.email,
+              subject: validated.subject || "Project Discussion Request",
+              message: validated.message,
+            });
+          } else {
+            await sendContactFormEmail({
+              name: validated.name,
+              email: validated.email,
+              subject: validated.subject || `New ${validated.inquiryType.replace('_', ' ')} Inquiry`,
+              message: validated.message,
+            });
+          }
+        } catch (emailErr) {
+          console.error(`Email send failed for ${validated.inquiryType} inquiry:`, emailErr);
+        }
+      })();
 
       res.json(inquiry);
     } catch (error: any) {
@@ -1353,11 +1384,6 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
-      }
-
-      // Check for specific email errors from sendContactFormEmail
-      if (error.message?.includes("User does not exist") || error.message?.includes("email is invalid")) {
-        return res.status(400).json({ error: "The provided email address does not exist or cannot be reached. Please providing a valid email address." });
       }
 
       res.status(500).json({ error: "Failed to save inquiry" });
