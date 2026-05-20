@@ -239,7 +239,7 @@ export class MemStorage implements IStorage {
       emailProvider: "smtp",
       emailFromName: "VyomAi",
       emailFromAddress: "info@vyomai.cloud",
-      smtpHost: "smtp.zoho.com",
+      smtpHost: "smtp.hostinger.com",
       smtpPort: "587",
       smtpUser: "info@vyomai.cloud",
       smtpSecure: false,

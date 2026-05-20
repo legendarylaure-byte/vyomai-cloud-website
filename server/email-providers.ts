@@ -218,7 +218,7 @@ export async function testProvider(provider: EmailProvider, config: EmailConfig)
 
     case "smtp":
       try {
-        const smtpPassword = process.env.EMAIL_SMTP_PASSWORD || config.smtpPassword;
+    const smtpPassword = config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
         if (!config.smtpHost || !config.smtpUser || !smtpPassword) {
           return { success: false, error: "SMTP configuration incomplete" };
         }
