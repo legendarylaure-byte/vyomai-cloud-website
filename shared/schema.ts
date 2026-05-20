@@ -48,6 +48,8 @@ export const articleSchema = z.object({
   id: z.string(),
   title: z.string().min(1).max(500),
   content: z.string().min(1).max(50000),
+  summary: z.string().max(5000).optional(),
+  tags: z.string().max(2000).optional(),
   type: z.enum(["article", "video", "demo"]),
   mediaUrl: z.string().max(2000).optional(),
   thumbnailUrl: z.string().max(2000).optional(),
@@ -138,6 +140,9 @@ export const siteSettingsSchema = z.object({
   welcomePopupButtonText: z.string().max(100).optional().default("Explore Now"),
   welcomePopupAnimationStyle: z.enum(["fade", "slide", "zoom", "glow", "bounce", "confetti", "sparkle", "gradient-wave", "pulse-ring"]).optional().default("fade"),
   welcomePopupDismissable: z.boolean().optional().default(true),
+  // AI Greeting Settings
+  aiGreetingEnabled: z.boolean().optional().default(false),
+  aiGreetingText: z.string().max(1000).optional().default(""),
   // Email Provider Configuration
   emailProvider: z.enum(["gmail", "smtp", "sendgrid"]).optional().default("smtp"),
   emailFromName: z.string().max(100).optional().default("VyomAi"),

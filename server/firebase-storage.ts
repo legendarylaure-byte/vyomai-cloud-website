@@ -40,7 +40,10 @@ export class FirebaseStorage {
   }
 
   async waitForInit() {
-    await this.initPromise;
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Firebase init timed out after 30s")), 30000)
+    );
+    await Promise.race([this.initPromise, timeout]);
   }
 
   private async initializeDefaults() {
@@ -111,10 +114,14 @@ export class FirebaseStorage {
         welcomePopupImageUrl: "",
         welcomePopupAnimationStyle: "fade",
         welcomePopupDismissable: true,
+        aiGreetingEnabled: false,
+        aiGreetingText: "",
         emailProvider: "smtp",
         emailFromName: "VyomAi",
         emailFromAddress: "info@vyomai.cloud",
+        smtpHost: "smtp.zoho.com",
         smtpPort: "587",
+        smtpUser: "info@vyomai.cloud",
         smtpSecure: false,
         emailProviderPriority: "smtp,gmail,sendgrid",
         socialMediaEnabled: { linkedin: true, instagram: true, facebook: true, whatsapp: true, viber: true, youtube: true },

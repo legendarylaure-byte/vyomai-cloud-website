@@ -56,6 +56,7 @@ export function PricingPage() {
   const [isConverting, setIsConverting] = useState(false);
   const [aiVerification, setAiVerification] = useState<{verified: boolean; message: string} | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
 
   const { data: pricingPackages = [] } = useQuery<PricingPackage[]>({
     queryKey: ["/api/pricing"],
@@ -245,6 +246,36 @@ export function PricingPage() {
     setIsDialogOpen(true);
   };
 
+  const generateDescription = async () => {
+    const name = form.getValues("name");
+    const features = featuresInput;
+    if (!name || name.length < 2) {
+      toast({ title: "Enter a plan name first", description: "Add a name so AI knows what to describe", variant: "destructive" });
+      return;
+    }
+    setIsGeneratingDescription(true);
+    try {
+      const token = localStorage.getItem("vyomai-admin-token");
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          prompt: `Write a compelling 1-2 sentence description for a pricing plan called "${name}"${features ? ` with these features:\n${features}` : ""}. The company is VyomAi Cloud Pvt. Ltd, an AI solutions provider. Make it sound valuable and exciting. Return ONLY the description text.`,
+          system: "You are a marketing copywriter for AI products.",
+        }),
+      });
+      const data = await res.json();
+      if (data.text) {
+        form.setValue("description", data.text);
+        toast({ title: "Description generated ✨", description: "AI-generated description added" });
+      }
+    } catch {
+      toast({ title: "Generation failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
+
   const formatPrice = (price: number | undefined, currency: string) => {
     if (!price) return "-";
     return `${currencySymbols[currency] || ""}${price.toLocaleString()}`;
@@ -431,7 +462,20 @@ export function PricingPage() {
                     <FormItem>
                       <FormLabel>Description *</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Describe what's included in this plan..." {...field} />
+                        <div className="space-y-2">
+                          <Textarea placeholder="Describe what's included in this plan..." {...field} />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={generateDescription}
+                            disabled={isGeneratingDescription}
+                            className="gap-2 text-purple-600 border-purple-300 hover:bg-purple-50"
+                          >
+                            {isGeneratingDescription ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            {isGeneratingDescription ? "Generating..." : "Generate with AI"}
+                          </Button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

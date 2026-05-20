@@ -1,18 +1,18 @@
 import { sendEmailWithProvider, testProvider, escapeHtml, type EmailOptions, type EmailConfig, type EmailResult, type EmailProvider } from "./email-providers.js";
 import { storage } from "./storage.js";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
-// Initialize OpenAI client
-let openai: OpenAI | null = null;
-if (process.env.OPENAI_API_KEY) {
-  const sanitizedKey = process.env.OPENAI_API_KEY.trim().replace(/[\n\r]/g, '').replace(/y$/, '');
-  openai = new OpenAI({ apiKey: sanitizedKey });
+// Initialize Google Generative AI (Gemini) client
+let genAI: GoogleGenerativeAI | null = null;
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY.trim());
+  console.log("✅ Gemini API initialized - Smart email features enabled");
 } else {
-  console.log("⚠️ OPENAI_API_KEY not set - Smart email features will fall back to templates");
+  console.log("⚠️ GEMINI_API_KEY not set - Smart email features will fall back to templates");
 }
 
 async function generateSmartEmailContent(type: 'booking' | 'inquiry', data: { name: string, message?: string, context?: string }): Promise<string> {
-  if (!openai) return "";
+  if (!genAI) return "";
 
   const companyInfo = "VyomAi Cloud Pvt. Ltd (The Infinity Sky) - AI Solutions Provider in Nepal.";
   
@@ -36,12 +36,13 @@ async function generateSmartEmailContent(type: 'booking' | 'inquiry', data: { na
   }
 
   try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-3.5-turbo",
-      messages: [{ role: "system", content: "You are a professional AI email assistant." }, { role: "user", content: prompt }],
-      max_tokens: 300,
+    const model = genAI.getGenerativeModel({
+      model: "gemini-2.5-flash",
+      systemInstruction: "You are a professional AI email assistant.",
     });
-    return completion.choices[0].message.content || "";
+
+    const result = await model.generateContent(prompt);
+    return result.response.text();
   } catch (error) {
     console.error("AI Email Generation Failed:", error);
     return "";

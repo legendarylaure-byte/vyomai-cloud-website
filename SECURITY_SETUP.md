@@ -67,7 +67,7 @@ This document outlines all the security improvements made to prepare the applica
    ADMIN_USERNAME=your_unique_username
    ADMIN_PASSWORD=your_very_secure_password_12_chars_min
    SESSION_SECRET=generate_random_secure_string
-   OPENAI_API_KEY=your_openai_key
+   GEMINI_API_KEY=your_openai_key
    ```
 
 3. **Generate a Random Session Secret**:
@@ -92,7 +92,7 @@ This document outlines all the security improvements made to prepare the applica
 | Variable | Required | Example | Description |
 |----------|----------|---------|-------------|
 | `NODE_ENV` | Yes | `production` | Application environment |
-| `OPENAI_API_KEY` | Yes | `sk-...` | OpenAI API key for chatbot |
+| `GEMINI_API_KEY` | Yes | `AIza...` | Google Gemini API key for chatbot |
 | `ADMIN_USERNAME` | Yes | `admin` | Admin login username |
 | `ADMIN_PASSWORD` | Yes | `SecurePass123!` | Admin login password |
 | `SESSION_SECRET` | Yes | `random-hex-string` | Session security key |

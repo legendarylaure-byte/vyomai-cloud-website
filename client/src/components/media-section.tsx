@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { FileText, Video, Presentation, ExternalLink, Clock, BookOpen, User } from "lucide-react";
+import { FileText, Video, Presentation, ExternalLink, Clock, BookOpen, User, ArrowRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -328,6 +328,8 @@ export function MediaSection() {
               <div className="prose prose-neutral dark:prose-invert max-w-none pb-20 relative z-10">
                 <p className="whitespace-pre-wrap text-base leading-relaxed">{selectedArticle.content}</p>
               </div>
+
+              <RelatedArticles currentId={selectedArticle.id} onSelect={setSelectedArticle} articles={articles || []} />
               
               {selectedArticle.type === "demo" && selectedArticle.mediaUrl && (
                 <Button asChild className="mt-8 w-full mb-10">
@@ -342,5 +344,68 @@ export function MediaSection() {
         </DialogContent>
       </Dialog>
     </section>
+  );
+}
+
+function RelatedArticles({ currentId, onSelect, articles }: { currentId: string; onSelect: (a: Article) => void; articles: Article[] }) {
+  const published = articles.filter(a => a.id !== currentId && a.published);
+  const current = articles.find(a => a.id === currentId);
+  const currentTags = (current?.tags || "").split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
+
+  let related = published.filter(a => {
+    const otherTags = (a.tags || "").split(",").map(t => t.trim().toLowerCase()).filter(Boolean);
+    return currentTags.some(t => otherTags.includes(t));
+  });
+
+  if (related.length < 3 && current) {
+    const sameType = published.filter(a => a.type === current.type && !related.some(r => r.id === a.id));
+    related = [...related, ...sameType];
+  }
+
+  related = related.slice(0, 3);
+
+  if (related.length === 0) return null;
+
+  return (
+    <div className="mt-10 pt-8 border-t border-border">
+      <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
+        <FileText className="w-5 h-5 text-primary" />
+        Related Articles
+      </h3>
+      <div className="grid md:grid-cols-3 gap-4">
+        {related.map((article) => {
+          const Icon = typeIcons[article.type];
+          return (
+            <Card
+              key={article.id}
+              className="cursor-pointer hover-elevate transition-all duration-300 overflow-hidden group border border-border/50"
+              onClick={() => onSelect(article)}
+            >
+              <CardContent className="p-0">
+                <div className="aspect-video bg-gradient-to-br from-primary/10 to-accent/10 flex items-center justify-center relative overflow-hidden">
+                  {article.thumbnailUrl ? (
+                    <img src={article.thumbnailUrl} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <Icon className="w-8 h-8 text-primary/40" />
+                  )}
+                </div>
+                <div className="p-3">
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className="text-xs">{typeEmojis[article.type]}</span>
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0 capitalize">{article.type}</Badge>
+                  </div>
+                  <h4 className="text-sm font-semibold line-clamp-2 group-hover:text-primary transition-colors">
+                    {article.title}
+                  </h4>
+                  <span className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                    <ArrowRight className="w-3 h-3" /> Read more
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
   );
 }

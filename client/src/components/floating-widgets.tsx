@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, X, Bot } from "lucide-react";
+import { MessageCircle, X, Bot, Languages, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,10 +12,24 @@ interface FloatingWidgetsProps {
   onAIChatbotOpen?: (isOpen: boolean) => void;
 }
 
+const greetings: Record<string, string> = {
+  english: "Namaste! Welcome to VyomAi. I'm here to help you learn about our AI solutions and services. How can I assist you today?",
+  nepali: "नमस्ते! VyomAi मा तपाईंलाई स्वागत छ। म तपाईंलाई हाम्रा AI समाधान र सेवाहरूको बारेमा जानकारी दिन यहाँ छु। आज म तपाईंलाई कसरी सहायता गर्न सक्छु?",
+  hindi: "नमस्ते! VyomAi में आपका स्वागत है। मैं आपको हमारे AI समाधानों और सेवाओं के बारे में जानकारी देने के लिए यहाँ हूँ। आज मैं आपकी कैसे सहायता कर सकता हूँ?",
+};
+
+const languages = [
+  { key: "english", label: "English", flag: "🇺🇸" },
+  { key: "nepali", label: "नेपाली", flag: "🇳🇵" },
+  { key: "hindi", label: "हिंदी", flag: "🇮🇳" },
+];
+
 export function FloatingWidgets({ onAIChatbotOpen }: FloatingWidgetsProps) {
   const [bookingOpen, setBookingOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [language, setLanguage] = useState(() => localStorage.getItem("vyomai-chat-lang") || "english");
+  const [langDropdownOpen, setLangDropdownOpen] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -24,10 +38,7 @@ export function FloatingWidgets({ onAIChatbotOpen }: FloatingWidgetsProps) {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      role: "assistant",
-      content: "Namaste! Welcome to VyomAi. I'm here to help you learn about our AI solutions and services. How can I assist you today?",
-    },
+    { role: "assistant", content: greetings[localStorage.getItem("vyomai-chat-lang") || "english"] },
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -67,6 +78,13 @@ export function FloatingWidgets({ onAIChatbotOpen }: FloatingWidgetsProps) {
     }
   };
 
+  const switchLanguage = (lang: string) => {
+    setLanguage(lang);
+    localStorage.setItem("vyomai-chat-lang", lang);
+    setMessages([{ role: "assistant", content: greetings[lang] }]);
+    setLangDropdownOpen(false);
+  };
+
   const sendChatMessage = async () => {
     if (!input.trim() || isLoading) return;
 
@@ -78,6 +96,7 @@ export function FloatingWidgets({ onAIChatbotOpen }: FloatingWidgetsProps) {
     try {
       const response = await apiRequest("POST", "/api/chat", {
         messages: [...messages, userMessage],
+        language: language,
       });
       // apiRequest already returns parsed JSON, so we use the response directly
       const data = response;
@@ -120,13 +139,43 @@ export function FloatingWidgets({ onAIChatbotOpen }: FloatingWidgetsProps) {
               <Bot className="w-5 h-5 text-accent" />
               <span className="gradient-text">VyomAi Assistant</span>
             </h3>
-            <button
-              onClick={() => setAiOpen(false)}
-              className="text-muted-foreground hover:text-foreground"
-              data-testid="button-close-chat"
-            >
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <div className="relative">
+                <button
+                  onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+                  className="text-muted-foreground hover:text-foreground p-1.5 rounded-md hover:bg-accent/20 transition-colors"
+                  title="Change language"
+                >
+                  <Languages className="w-4 h-4" />
+                </button>
+                {langDropdownOpen && (
+                  <div className="absolute bottom-full right-0 mb-2 bg-background border border-border rounded-lg shadow-xl p-1.5 min-w-[140px] z-50">
+                    {languages.map((lang) => (
+                      <button
+                        key={lang.key}
+                        onClick={() => switchLanguage(lang.key)}
+                        className={`w-full text-left px-3 py-2 rounded-md text-sm flex items-center gap-2 transition-colors ${
+                          language === lang.key
+                            ? "bg-accent/20 text-accent font-medium"
+                            : "hover:bg-muted text-foreground"
+                        }`}
+                      >
+                        <span className="text-base">{lang.flag}</span>
+                        <span>{lang.label}</span>
+                        {language === lang.key && <Check className="w-3.5 h-3.5 ml-auto text-accent" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => setAiOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+                data-testid="button-close-chat"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
 
           <div className="bg-muted/30 rounded-lg h-80 flex flex-col">
@@ -162,7 +211,7 @@ export function FloatingWidgets({ onAIChatbotOpen }: FloatingWidgetsProps) {
 
             <div className="border-t border-border p-3 flex gap-2">
               <Input
-                placeholder="Ask about our AI solutions..."
+                placeholder={language === "nepali" ? "हाम्रा AI समाधानहरूको बारेमा सोध्नुहोस्..." : language === "hindi" ? "हमारे AI समाधानों के बारे में पूछें..." : "Ask about our AI solutions..."}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={handleKeyPress}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Plus, Trash2, Edit, Save, Loader2, Calendar, Clock, FileText, Video, Zap, Eye, EyeOff, Search, Filter, Download, Upload, FileJson, User, Link2 } from "lucide-react";
+import { Plus, Trash2, Edit, Save, Loader2, Calendar, Clock, FileText, Video, Zap, Eye, EyeOff, Search, Filter, Download, Upload, FileJson, User, Link2, Sparkles, Tags } from "lucide-react";
 import html2pdf from "html2pdf.js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,6 +54,12 @@ export function ArticlesPage() {
   const [isDraggingThumbnail, setIsDraggingThumbnail] = useState(false);
   const [isDraggingMedia, setIsDraggingMedia] = useState(false);
   const [thumbnailMode, setThumbnailMode] = useState<"url" | "upload">("upload");
+  const [isGeneratingContent, setIsGeneratingContent] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isGeneratingTags, setIsGeneratingTags] = useState(false);
+  const [isAiSearch, setIsAiSearch] = useState(false);
+  const [aiSearchResults, setAiSearchResults] = useState<Set<string> | null>(null);
+  const [isSearchingAi, setIsSearchingAi] = useState(false);
 
   const { data: articles = [], isLoading } = useQuery<Article[]>({
     queryKey: ["/api/articles"],
@@ -64,6 +70,8 @@ export function ArticlesPage() {
     defaultValues: {
       title: "",
       content: "",
+      summary: "",
+      tags: "",
       type: "article",
       mediaUrl: "",
       thumbnailUrl: "",
@@ -167,6 +175,78 @@ export function ArticlesPage() {
       toast({ title: "Error updating article", description: "Please try again", variant: "destructive" });
     },
   });
+
+  const aiGenerateMutation = useMutation({
+    mutationFn: async ({ prompt, system }: { prompt: string; system?: string }) => {
+      const token = localStorage.getItem("vyomai-admin-token");
+      return apiRequest("POST", "/api/admin/ai/generate", { prompt, system }, { Authorization: `Bearer ${token}` });
+    },
+  });
+
+  const generateContent = async () => {
+    const title = form.getValues("title");
+    if (!title || title.length < 3) {
+      toast({ title: "Enter a title first", description: "Add a title so AI knows what to write about", variant: "destructive" });
+      return;
+    }
+    setIsGeneratingContent(true);
+    try {
+      const data = await aiGenerateMutation.mutateAsync({
+        prompt: `Write a detailed article/blog post about: "${title}". Write in a professional, engaging tone. Include relevant details, examples, and a clear structure. The company is VyomAi Cloud Pvt. Ltd, an AI solutions provider based in Kathmandu, Nepal. Make it at least 500 words. Return ONLY the article content, no title.`,
+        system: "You are a professional content writer for VyomAi Cloud Pvt. Ltd, an AI technology company.",
+      });
+      form.setValue("content", data.text);
+      toast({ title: "Content generated ✨", description: "AI-generated content has been added" });
+    } catch {
+      toast({ title: "Generation failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsGeneratingContent(false);
+    }
+  };
+
+  const generateSummary = async () => {
+    const content = form.getValues("content");
+    if (!content || content.length < 20) {
+      toast({ title: "Write content first", description: "Add article content before generating a summary", variant: "destructive" });
+      return;
+    }
+    setIsGeneratingSummary(true);
+    try {
+      const data = await aiGenerateMutation.mutateAsync({
+        prompt: `Summarize the following article in 2-3 sentences. Keep it concise and engaging:\n\n${content.slice(0, 4000)}`,
+        system: "You are a professional content summarizer.",
+      });
+      form.setValue("summary", data.text);
+      toast({ title: "Summary generated ✨", description: "AI summary has been added" });
+    } catch {
+      toast({ title: "Generation failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  };
+
+  const generateTags = async () => {
+    const title = form.getValues("title");
+    const content = form.getValues("content");
+    const text = `${title || ""} ${(content || "").slice(0, 3000)}`;
+    if (!text || text.length < 10) {
+      toast({ title: "Add content first", description: "Add a title and content before generating tags", variant: "destructive" });
+      return;
+    }
+    setIsGeneratingTags(true);
+    try {
+      const data = await aiGenerateMutation.mutateAsync({
+        prompt: `Extract 5-8 relevant tags/keywords from this article content. Return ONLY the tags as a comma-separated list, no numbering or extra text:\n\n${text}`,
+        system: "You are an AI that extracts tags from content.",
+      });
+      form.setValue("tags", data.text);
+      toast({ title: "Tags generated ✨", description: "AI tags have been added" });
+    } catch {
+      toast({ title: "Generation failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsGeneratingTags(false);
+    }
+  };
 
   const onSubmit = (data: ArticleFormData) => {
     if (editingArticle) {
@@ -414,9 +494,9 @@ export function ArticlesPage() {
       const opt = {
         margin: 10,
         filename: `VyomAi_Articles_Report_${new Date().toISOString().split('T')[0]}.pdf`,
-        image: { type: "jpeg", quality: 0.98 },
+        image: { type: "jpeg" as const, quality: 0.98 },
         html2canvas: { scale: 2 },
-        jsPDF: { orientation: "portrait", unit: "mm", format: "a4" },
+        jsPDF: { orientation: "portrait" as const, unit: "mm", format: "a4" },
       };
 
       html2pdf().set(opt).from(element).save();
@@ -456,8 +536,47 @@ export function ArticlesPage() {
     });
   };
 
+  const doAiSearch = async () => {
+    if (!searchQuery.trim()) return;
+    setIsSearchingAi(true);
+    try {
+      const token = localStorage.getItem("vyomai-admin-token");
+      const articleList = articles.map(a => ({ id: a.id, title: a.title, summary: a.summary || a.content.slice(0, 200) }));
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          prompt: `Given this search query: "${searchQuery}", find the most relevant articles from this list. Return ONLY a JSON array of matching article IDs (can be empty). Base your matches on semantic relevance, not just keywords.\n\nArticles:\n${JSON.stringify(articleList)}\n\nReturn format: ["id1", "id2"]`,
+          system: "You are a semantic search engine. Return matching article IDs as a JSON array.",
+        }),
+      });
+      const data = await res.json();
+      try {
+        const ids = JSON.parse(data.text);
+        setAiSearchResults(new Set(Array.isArray(ids) ? ids : []));
+      } catch {
+        setAiSearchResults(null);
+      }
+      toast({ title: "AI search complete ✨", description: "Showing semantically relevant results" });
+    } catch {
+      toast({ title: "AI search failed", description: "Falling back to normal search", variant: "destructive" });
+      setAiSearchResults(null);
+    } finally {
+      setIsSearchingAi(false);
+    }
+  };
+
+  const toggleAiSearch = () => {
+    setIsAiSearch(!isAiSearch);
+    setAiSearchResults(null);
+    if (!isAiSearch && searchQuery) doAiSearch();
+  };
+
   // Filter and sort logic
   let filteredArticles = articles.filter((article) => {
+    if (isAiSearch && aiSearchResults !== null) {
+      return aiSearchResults.has(article.id);
+    }
     const matchesSearch =
       article.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       article.content.toLowerCase().includes(searchQuery.toLowerCase());
@@ -594,7 +713,74 @@ export function ArticlesPage() {
                     <FormItem>
                       <FormLabel>Content</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Write your article, demo, or video description" rows={5} {...field} data-testid="textarea-article-content" />
+                        <div className="space-y-2">
+                          <Textarea placeholder="Write your article, demo, or video description" rows={5} {...field} data-testid="textarea-article-content" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={generateContent}
+                            disabled={isGeneratingContent}
+                            className="gap-2 text-purple-600 border-purple-300 hover:bg-purple-50"
+                          >
+                            {isGeneratingContent ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            {isGeneratingContent ? "Generating..." : "Generate with AI"}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="summary"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Summary</FormLabel>
+                      <FormControl>
+                        <div className="space-y-2">
+                          <Textarea placeholder="Brief summary for preview cards (optional)" rows={2} {...field} />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={generateSummary}
+                            disabled={isGeneratingSummary}
+                            className="gap-2 text-blue-600 border-blue-300 hover:bg-blue-50"
+                          >
+                            {isGeneratingSummary ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            {isGeneratingSummary ? "Generating..." : "Generate Summary"}
+                          </Button>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="tags"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tags</FormLabel>
+                      <FormControl>
+                        <div className="space-y-2">
+                          <Input placeholder="AI, Technology, Business (comma-separated)" {...field} />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={generateTags}
+                            disabled={isGeneratingTags}
+                            className="gap-2 text-emerald-600 border-emerald-300 hover:bg-emerald-50"
+                          >
+                            {isGeneratingTags ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            {isGeneratingTags ? "Generating..." : "Generate Tags"}
+                          </Button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -949,30 +1135,33 @@ export function ArticlesPage() {
                   </SelectContent>
                 </Select>
               </div>
-              {dateFilterOption === "custom" && (
-                <>
-                  <div className="flex-1">
-                    <label className="text-xs font-medium text-muted-foreground mb-2 block">From Date</label>
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground mb-2 block">Search</label>
+                <div className="relative flex gap-2">
+                  <div className="relative flex-1">
+                    <Search className="w-4 h-4 absolute left-3 top-3 text-muted-foreground" />
                     <Input
-                      type="date"
-                      value={customDateFrom}
-                      onChange={(e) => setCustomDateFrom(e.target.value)}
-                      data-testid="input-date-from"
-                      className="w-full"
+                      placeholder={isAiSearch ? "Ask AI to find relevant content..." : "Search by title or content..."}
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-9"
+                      data-testid="input-search-articles"
                     />
                   </div>
-                  <div className="flex-1">
-                    <label className="text-xs font-medium text-muted-foreground mb-2 block">To Date</label>
-                    <Input
-                      type="date"
-                      value={customDateTo}
-                      onChange={(e) => setCustomDateTo(e.target.value)}
-                      data-testid="input-date-to"
-                      className="w-full"
-                    />
-                  </div>
-                </>
-              )}
+                  <Button
+                    type="button"
+                    variant={isAiSearch ? "default" : "outline"}
+                    size="sm"
+                    onClick={toggleAiSearch}
+                    disabled={isSearchingAi}
+                    className={`gap-1.5 ${isAiSearch ? "bg-purple-600 hover:bg-purple-700" : "text-purple-600 border-purple-300 hover:bg-purple-50"}`}
+                    title="Toggle AI semantic search"
+                  >
+                    {isSearchingAi ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                    AI
+                  </Button>
+                </div>
+              </div>
               <div className="flex-1">
                 <label className="text-xs font-medium text-muted-foreground mb-2 block">Sort By</label>
                 <Select value={sortBy} onValueChange={setSortBy}>
@@ -1043,7 +1232,17 @@ export function ArticlesPage() {
                         </div>
                       </div>
 
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{article.content}</p>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{article.summary || article.content}</p>
+
+                      {article.tags && (
+                        <div className="flex flex-wrap gap-1.5 mb-3">
+                          {article.tags.split(",").map((tag, i) => (
+                            <span key={i} className="text-xs px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700 dark:text-purple-400 border border-purple-500/20">
+                              {tag.trim()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
 
                       {/* Creator Badge */}
                       {article.createdBy && (
@@ -1109,6 +1308,8 @@ export function ArticlesPage() {
                           form.reset({
                             title: article.title,
                             content: article.content,
+                            summary: article.summary || "",
+                            tags: article.tags || "",
                             type: article.type,
                             mediaUrl: article.mediaUrl || "",
                             thumbnailUrl: article.thumbnailUrl || "",

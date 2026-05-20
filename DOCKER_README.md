@@ -13,14 +13,14 @@ This guide explains how to deploy the VyomAi application using Docker on Hosting
 Before deploying, you need to set up these environment variables:
 
 ```
-OPENAI_API_KEY=<your-openai-api-key>
+GEMINI_API_KEY=<your-gemini-api-key>
 SESSION_SECRET=<your-random-secret-key>
 DATABASE_URL=<your-database-url-optional>
 ```
 
 ### Getting Your Keys
 
-1. **OPENAI_API_KEY**: Get from https://platform.openai.com/api-keys
+1. **GEMINI_API_KEY**: Get from https://aistudio.google.com/apikey
 2. **SESSION_SECRET**: Generate a random secret (min 32 characters):
    ```bash
    openssl rand -hex 32
@@ -36,7 +36,7 @@ DATABASE_URL=<your-database-url-optional>
 
 1. **Prepare environment file** (`.env`):
    ```
-   OPENAI_API_KEY=sk-xxxxxxxxxxxx
+   GEMINI_API_KEY=sk-xxxxxxxxxxxx
    SESSION_SECRET=your_random_secret_here
    DATABASE_URL=postgresql://user:pass@host:5432/db
    ```
@@ -69,7 +69,7 @@ DATABASE_URL=<your-database-url-optional>
    docker run -d \
      --name vyomai \
      -p 5000:5000 \
-     -e OPENAI_API_KEY="sk-xxxxxxxxxxxx" \
+     -e GEMINI_API_KEY="sk-xxxxxxxxxxxx" \
      -e SESSION_SECRET="your_random_secret_here" \
      -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
      --restart unless-stopped \
@@ -109,7 +109,7 @@ nano .env
 
 Add your environment variables:
 ```
-OPENAI_API_KEY=sk-xxxxxxxxxxxx
+GEMINI_API_KEY=sk-xxxxxxxxxxxx
 SESSION_SECRET=your_random_secret_here
 DATABASE_URL=postgresql://user:pass@host:5432/db
 ```

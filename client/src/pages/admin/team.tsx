@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Trash2, Edit, Save, Loader2, Upload, Clock, CheckCircle2, Circle } from "lucide-react";
+import { Plus, Trash2, Edit, Save, Loader2, Upload, Clock, CheckCircle2, Circle, Sparkles } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -31,6 +31,7 @@ export function TeamPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [checkedMembers, setCheckedMembers] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isGeneratingBio, setIsGeneratingBio] = useState(false);
 
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
     queryKey: ["/api/team"],
@@ -94,6 +95,36 @@ export function TeamPage() {
       newChecked.add(id);
     }
     setCheckedMembers(newChecked);
+  };
+
+  const generateBio = async () => {
+    const name = form.getValues("name");
+    const role = form.getValues("role");
+    if (!name || !role) {
+      toast({ title: "Enter name and role first", description: "Add name and role so AI can generate a relevant bio", variant: "destructive" });
+      return;
+    }
+    setIsGeneratingBio(true);
+    try {
+      const token = localStorage.getItem("vyomai-admin-token");
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          prompt: `Write a professional 2-3 sentence bio for a team member at VyomAi Cloud Pvt. Ltd. Name: ${name}, Role: ${role}. Highlight their expertise in AI and technology. Make it authentic and inspiring. Return ONLY the bio text.`,
+          system: "You are an HR copywriter writing team member bios.",
+        }),
+      });
+      const data = await res.json();
+      if (data.text) {
+        form.setValue("description", data.text);
+        toast({ title: "Bio generated ✨", description: "AI-generated bio added" });
+      }
+    } catch {
+      toast({ title: "Generation failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsGeneratingBio(false);
+    }
   };
 
   const createTeamMutation = useMutation({
@@ -212,7 +243,20 @@ export function TeamPage() {
                     <FormItem>
                       <FormLabel>Bio / Description</FormLabel>
                       <FormControl>
-                        <Textarea placeholder="Brief description of the team member" {...field} data-testid="textarea-team-description" />
+                        <div className="space-y-2">
+                          <Textarea placeholder="Brief description of the team member" {...field} data-testid="textarea-team-description" />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={generateBio}
+                            disabled={isGeneratingBio}
+                            className="gap-2 text-purple-600 border-purple-300 hover:bg-purple-50"
+                          >
+                            {isGeneratingBio ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                            {isGeneratingBio ? "Generating..." : "Generate Bio with AI"}
+                          </Button>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>

@@ -216,7 +216,7 @@ export function SettingsPage() {
                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                 <span className="text-lg font-bold text-gray-900">Active</span>
               </div>
-              <p className="text-xs text-green-600">OpenAI GPT-4 Connected</p>
+              <p className="text-xs text-green-600">Gemini 2.5 Flash Connected</p>
             </div>
             <div className="p-4 rounded-xl bg-blue-50 border border-blue-100 flex flex-col gap-2">
               <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Email System</span>

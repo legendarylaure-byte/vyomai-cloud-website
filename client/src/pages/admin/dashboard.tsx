@@ -1,11 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { BarChart3, Users, MessageSquare, Eye, Calendar, TrendingUp, FileText, DollarSign, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { BarChart3, Users, MessageSquare, Eye, Calendar, TrendingUp, FileText, DollarSign, ArrowUpRight, ArrowDownRight, Sparkles, Bot, Loader2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { type VisitorStats, type BookingRequest, type Article, type TeamMember, type PricingPackage, type CustomerInquiry } from "@shared/schema";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Link } from "wouter";
 
 export function AdminDashboard() {
+  const [aiInsights, setAiInsights] = useState<string | null>(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [insightsError, setInsightsError] = useState(false);
   const { data: visitors } = useQuery<VisitorStats>({
     queryKey: ["/api/visitors"],
   });
@@ -78,8 +83,8 @@ export function AdminDashboard() {
     },
     { 
       title: "Pending Actions", 
-      value: bookings.filter(b => b.status === "open" || b.status === "created" || b.status === "pending").length + 
-        inquiries.filter(i => i.status === "new" || i.status === "pending").length, 
+      value: bookings.filter(b => b.status === "open" || b.status === "created").length + 
+        inquiries.filter(i => i.status === "new").length, 
       icon: Calendar, 
       color: "bg-orange-500",
       lightColor: "bg-orange-50",
@@ -90,8 +95,8 @@ export function AdminDashboard() {
   ];
 
   const totalCommunications = bookings.length + inquiries.length;
-  const pendingCommunications = bookings.filter(b => b.status === "open" || b.status === "created" || b.status === "pending").length + 
-    inquiries.filter(i => i.status === "new" || i.status === "pending").length;
+  const pendingCommunications = bookings.filter(b => b.status === "open" || b.status === "created").length + 
+    inquiries.filter(i => i.status === "new").length;
 
   const quickLinks = [
     { label: "Articles", value: articles.length, icon: FileText, href: "/admin/articles", color: "text-blue-600" },
@@ -99,6 +104,47 @@ export function AdminDashboard() {
     { label: "Pricing Plans", value: pricing.filter(p => p.enabled).length, icon: DollarSign, href: "/admin/pricing", color: "text-purple-600" },
     { label: "Communications", value: totalCommunications, icon: MessageSquare, href: "/admin/communications", color: "text-orange-600" },
   ];
+
+  const generateInsights = async () => {
+    setIsLoadingInsights(true);
+    setInsightsError(false);
+    try {
+      const token = localStorage.getItem("vyomai-admin-token");
+      const summary = {
+        visitors: { total: visitors?.totalVisitors || 0, today: visitors?.todayVisitors || 0 },
+        bookings: bookings.length,
+        inquiries: inquiries.length,
+        articles: articles.length,
+        team: team.length,
+        pricingPlans: pricing.length,
+        pendingActions: pendingCommunications,
+      };
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          prompt: `You are an AI business analyst. Analyze this dashboard data and provide 3-4 concise, actionable insights. Keep each insight to 1-2 sentences. Be specific with numbers.
+Dashboard Data:
+${JSON.stringify(summary, null, 2)}
+Format: Return as a JSON array of strings. Example: ["Insight 1", "Insight 2", "Insight 3"]`,
+          system: "You are a data analyst that provides concise business insights.",
+        }),
+      });
+      const data = await res.json();
+      let parsed: string[];
+      try {
+        parsed = JSON.parse(data.text);
+      } catch {
+        parsed = [data.text];
+      }
+      setAiInsights(Array.isArray(parsed) ? parsed.join("\n\n") : data.text);
+    } catch {
+      setInsightsError(true);
+      setAiInsights(null);
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -249,6 +295,57 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="border-gray-200 shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-purple-600" />
+              AI Insights
+            </CardTitle>
+            <Button
+              onClick={generateInsights}
+              disabled={isLoadingInsights}
+              variant="outline"
+              size="sm"
+              className="gap-2 text-purple-600 border-purple-300 hover:bg-purple-50"
+            >
+              {isLoadingInsights ? <Loader2 className="w-4 h-4 animate-spin" /> : <Bot className="w-4 h-4" />}
+              {isLoadingInsights ? "Analyzing..." : "Generate AI Insights"}
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoadingInsights ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-center">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-600 mx-auto mb-2" />
+                <p className="text-sm text-gray-500">Analyzing your data...</p>
+              </div>
+            </div>
+          ) : insightsError ? (
+            <div className="text-center py-8 text-gray-400">
+              <Bot className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p>AI analysis failed. Please try again.</p>
+            </div>
+          ) : aiInsights ? (
+            <div className="space-y-3">
+              {aiInsights.split("\n\n").map((insight, i) => (
+                <div key={i} className="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+                  <Sparkles className="w-5 h-5 text-purple-600 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-700">{insight}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-400">
+              <Bot className="w-12 h-12 mx-auto mb-2 opacity-50" />
+              <p className="text-lg font-medium">No insights yet</p>
+              <p className="text-sm">Click "Generate AI Insights" to get AI-powered business analysis</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-gray-200 shadow-sm">
         <CardHeader className="pb-2">

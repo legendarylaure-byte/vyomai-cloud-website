@@ -1,10 +1,10 @@
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage.js";
-import { insertArticleSchema, insertTeamMemberSchema, insertPricingPackageSchema, insertProjectDiscussionSchema, insertBookingRequestSchema, insertOneTimePricingRequestSchema, insertSocialMediaAnalyticsSchema, insertSocialMediaIntegrationSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordSchema, insertCustomerInquirySchema, SocialMediaIntegration } from "../shared/schema.js";
+import { insertArticleSchema, insertTeamMemberSchema, insertPricingPackageSchema, insertProjectDiscussionSchema, insertBookingRequestSchema, insertOneTimePricingRequestSchema, insertSocialMediaAnalyticsSchema, insertSocialMediaIntegrationSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordSchema, insertCustomerInquirySchema, SocialMediaIntegration, Article } from "../shared/schema.js";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
-import OpenAI from "openai";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import bcryptjs from "bcryptjs";
 import { randomBytes } from "crypto";
 import { sendContactFormEmail, sendPasswordResetEmail, sendBookingConfirmationEmail, sendOneTimePricingRequestEmail, sendEmail, sendEmailWithAttachment } from "./email-service.js";
@@ -21,14 +21,13 @@ import { syncPlatform, syncAllPlatforms } from './social-media-clients/index.js'
 import { initializeAutoSync, schedulePlatformSync, stopPlatformSync } from './social-media-sync-scheduler.js';
 import { encrypt, decrypt } from './crypto-utils.js';
 
-// OpenAI client - initialized lazily when API key is available
-let openai: OpenAI | null = null;
-if (process.env.OPENAI_API_KEY) {
-  // Sanitize key to remove any accidental newlines, whitespace, or the sticky 'y' character from deployment scripts
-  const sanitizedKey = process.env.OPENAI_API_KEY.trim().replace(/[\n\r]/g, '').replace(/y$/, '');
-  openai = new OpenAI({ apiKey: sanitizedKey });
+// Google Generative AI (Gemini) client - initialized when API key is available
+let genAI: GoogleGenerativeAI | null = null;
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY.trim());
+  console.log("✅ Gemini API initialized - AI features enabled");
 } else {
-  console.log("⚠️ OPENAI_API_KEY not set - AI chatbot features will be disabled");
+  console.log("⚠️ GEMINI_API_KEY not set - AI chatbot features will be disabled");
 }
 
 if (process.env.NODE_ENV === "production" && !process.env.SESSION_SECRET) {
@@ -167,6 +166,32 @@ export async function registerRoutes(
       res.json(article);
     } catch (error) {
       res.status(500).json({ error: "Failed to get article" });
+    }
+  });
+
+  app.get("/api/articles/:id/related", async (req, res) => {
+    try {
+      const article = await storage.getArticle(req.params.id);
+      if (!article) {
+        return res.status(404).json({ error: "Article not found" });
+      }
+      const allArticles: Article[] = await storage.getArticles();
+      const published = allArticles.filter((a: Article) => a.id !== article.id && a.published);
+      const articleTags = (article.tags || "").split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+
+      let related: Article[] = published.filter((a: Article) => {
+        const otherTags = (a.tags || "").split(",").map((t: string) => t.trim().toLowerCase()).filter(Boolean);
+        return articleTags.some((t: string) => otherTags.includes(t));
+      });
+
+      if (related.length < 3) {
+        const sameType = published.filter((a: Article) => a.type === article.type && !related.some((r: Article) => r.id === a.id));
+        related = [...related, ...sameType];
+      }
+
+      res.json(related.slice(0, 3));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get related articles" });
     }
   });
 
@@ -356,19 +381,8 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/chat", async (req, res) => {
-    try {
-      const { messages } = req.body;
-
-      // Explicit runtime check for debugging Vercel deployment
-      if (!process.env.OPENAI_API_KEY) {
-        console.error("❌ Chatbot Error: OPENAI_API_KEY is missing in environment variables!");
-        return res.status(503).json({
-          response: "I'm sorry, but the AI service is not configured correctly. Please contact the administrator."
-        });
-      }
-
-      const systemMessage = `You are VyomAi's helpful AI assistant. VyomAi Cloud Pvt. Ltd is an AI technology company based in Tokha, Kathmandu, Nepal.
+  const systemPrompts: Record<string, string> = {
+    english: `You are VyomAi's helpful AI assistant. VyomAi Cloud Pvt. Ltd is an AI technology company based in Tokha, Kathmandu, Nepal.
 
 Key information about VyomAi:
 - Company: VyomAi Cloud Pvt. Ltd
@@ -380,29 +394,79 @@ Key information about VyomAi:
 
 You help visitors understand VyomAi's services, answer questions about AI technology, and assist with inquiries. Be friendly, professional, and helpful. If asked about specific pricing, politely explain that pricing is customized based on requirements and direct them to contact via email.
 
-Always maintain a balance between being professional and approachable. Reference Nepali culture positively when appropriate (e.g., "Namaste" for greetings).`;
+Always maintain a balance between being professional and approachable. Reference Nepali culture positively when appropriate (e.g., "Namaste" for greetings).
 
-      const chatMessages = [
-        { role: "system" as const, content: systemMessage },
-        ...messages.map((m: { role: string; content: string }) => ({
-          role: m.role as "user" | "assistant",
-          content: m.content,
-        })),
-      ];
+IMPORTANT: Always respond in English, regardless of what language the user writes in. If they write in another language, acknowledge it politely but respond in English.`,
+    nepali: `तपाईं VyomAi को सहयोगी AI सहायक हुनुहुन्छ। VyomAi Cloud Pvt. Ltd टोखा, काठमाडौं, नेपालमा अवस्थित एक AI प्रविधि कम्पनी हो।
 
-      if (!openai) {
+VyomAi बारेमा मुख्य जानकारी:
+- कम्पनी: VyomAi Cloud Pvt. Ltd
+- स्थान: टोखा, काठमाडौं, नेपाल
+- इमेल: info@vyomai.cloud
+- सेवाहरू: AI एजेन्ट टेम्प्लेट, कस्टम AI बट, Google Workspace एकीकरण, Microsoft 365 एकीकरण, AI एनालिटिक्स, AI परामर्श
+- मिशन: AI प्रविधिलाई सबै आकारका व्यवसायहरूको लागि सुलभ बनाउनु
+- दर्शन: सबैको भलोको लागि ज्ञान साझा गर्नुहोस्
+
+तपाईं आगन्तुकहरूलाई VyomAi का सेवाहरू बुझ्न, AI प्रविधिको बारेमा प्रश्नहरूको जवाफ दिन, र सोधपुछमा सहायता गर्न मद्दत गर्नुहुन्छ। मैत्रीपूर्ण, पेशेवर र सहयोगी हुनुहोस्। मूल्य निर्धारणको बारेमा सोध्दा, मूल्य निर्धारण आवश्यकता अनुसार अनुकूलन गरिन्छ भनी विनम्रतापूर्वक बताउनुहोस् र इमेल मार्फत सम्पर्क गर्न निर्देशित गर्नुहोस्।
+
+IMPORTANT: Always respond in Nepali (नेपालीमा जवाफ दिनुहोस्), using Devanagari script. Be warm and welcoming. Use "नमस्ते" for greetings.`,
+    hindi: `आप VyomAi के सहायक AI सहायक हैं। VyomAi Cloud Pvt. Ltd टोखा, काठमांडू, नेपाल में स्थित एक AI प्रौद्योगिकी कंपनी है।
+
+VyomAi के बारे में मुख्य जानकारी:
+- कंपनी: VyomAi Cloud Pvt. Ltd
+- स्थान: टोखा, काठमांडू, नेपाल
+- ईमेल: info@vyomai.cloud
+- सेवाएं: AI एजेंट टेम्पलेट, कस्टम AI बॉट, Google Workspace एकीकरण, Microsoft 365 एकीकरण, AI एनालिटिक्स, AI परामर्श
+- मिशन: AI प्रौद्योगिकी को सभी आकार के व्यवसायों के लिए सुलभ बनाना
+- दर्शन: सभी की भलाई के लिए ज्ञान साझा करें
+
+आप आगंतुकों को VyomAi की सेवाओं को समझने, AI प्रौद्योगिकी के बारे में प्रश्नों के उत्तर देने और पूछताछ में सहायता करने में मदद करते हैं। मैत्रीपूर्ण, पेशेवर और सहायक बनें। मूल्य निर्धारण के बारे में पूछे जाने पर, विनम्रतापूर्वक समझाएं कि मूल्य निर्धारण आवश्यकताओं के अनुसार अनुकूलित किया जाता है और ईमेल के माध्यम से संपर्क करने के लिए निर्देशित करें।
+
+IMPORTANT: Always respond in Hindi (हिंदी में उत्तर दें), using Devanagari script. Be friendly and professional. Use "नमस्ते" for greetings.`,
+  };
+
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const { messages, language } = req.body;
+      const lang = language || "english";
+
+      // Explicit runtime check for debugging Vercel deployment
+      if (!process.env.GEMINI_API_KEY) {
+        console.error("❌ Chatbot Error: GEMINI_API_KEY is missing in environment variables!");
+        return res.status(503).json({
+          response: "I'm sorry, but the AI service is not configured correctly. Please contact the administrator."
+        });
+      }
+
+      const systemMessage = systemPrompts[lang] || systemPrompts.english;
+
+      if (!genAI) {
         return res.json({
           response: "I'm sorry, but the AI service is not configured yet. Please contact us at info@vyomai.cloud for assistance."
         });
       }
 
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: chatMessages,
-        max_tokens: 500,
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: systemMessage,
       });
 
-      const response = completion.choices[0].message.content || "I apologize, but I couldn't generate a response. Please try again.";
+      const rawHistory = messages.slice(0, -1);
+      const history: { role: "user" | "model"; parts: { text: string }[] }[] = [];
+
+      let lastRole: string | null = null;
+      for (const m of rawHistory) {
+        const geminiRole = m.role === "assistant" ? "model" as const : "user" as const;
+        if (history.length === 0 && geminiRole !== "user") continue;
+        if (geminiRole === lastRole) continue;
+        history.push({ role: geminiRole, parts: [{ text: m.content }] });
+        lastRole = geminiRole;
+      }
+
+      const lastMessage = messages[messages.length - 1];
+      const chat = model.startChat({ history });
+      const result = await chat.sendMessage(lastMessage.content);
+      const response = result.response.text() || "I apologize, but I couldn't generate a response. Please try again.";
       res.json({ response });
     } catch (error) {
       console.error("Chat API Error:", error);
@@ -918,35 +982,28 @@ Always maintain a balance between being professional and approachable. Reference
       const deviation = Math.abs(expectedPrice - convertedPrice) / expectedPrice * 100;
 
       let aiVerification = null;
-      if (openai) {
+      if (genAI) {
         try {
-          const completion = await openai.chat.completions.create({
-            model: "gpt-4o-mini",
-            messages: [
-              {
-                role: "system",
-                content: "You are a financial verification assistant. Verify currency conversions and confirm accuracy. Be brief and precise."
-              },
-              {
-                role: "user",
-                content: `Verify this currency conversion:
+          const model = genAI.getGenerativeModel({
+            model: "gemini-2.5-flash",
+            systemInstruction: "You are a financial verification assistant. Verify currency conversions and confirm accuracy. Be brief and precise.",
+          });
+
+          const prompt = `Verify this currency conversion:
 Base: ${basePrice} ${baseCurrency}
 Converted to: ${convertedPrice} ${targetCurrency}
 Exchange rates: ${JSON.stringify(rates)}
 Expected calculation: ${basePrice} / ${baseRate} (${baseCurrency} to USD) × ${targetRate} (USD to ${targetCurrency}) = ${expectedPrice}
 Deviation: ${deviation.toFixed(2)}%
 
-Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate": true/false, "message": "brief explanation"}`
-              }
-            ],
-            max_tokens: 150
-          });
+Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate": true/false, "message": "brief explanation"}`;
 
-          const response = completion.choices[0]?.message?.content || "";
+          const result = await model.generateContent(prompt);
+          const text = result.response.text();
           try {
-            aiVerification = JSON.parse(response);
+            aiVerification = JSON.parse(text);
           } catch {
-            aiVerification = { accurate: deviation < 1, message: response };
+            aiVerification = { accurate: deviation < 1, message: text };
           }
         } catch (aiError) {
           console.error("AI verification error:", aiError);
@@ -2911,6 +2968,51 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
     } catch (error) {
       console.error("Error disconnecting platform:", error);
       res.status(500).json({ error: "Failed to disconnect platform" });
+    }
+  });
+
+  // ============== AI GENERATION ENDPOINTS ==============
+
+  app.post("/api/admin/ai/generate", authMiddleware, async (req, res) => {
+    try {
+      if (!genAI) {
+        return res.status(503).json({ error: "AI service not configured" });
+      }
+      const { prompt, system } = req.body;
+      if (!prompt) {
+        return res.status(400).json({ error: "Prompt is required" });
+      }
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: system || "You are a helpful AI assistant.",
+      });
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      res.json({ text });
+    } catch (error) {
+      console.error("AI generation error:", error);
+      res.status(500).json({ error: "AI generation failed" });
+    }
+  });
+
+  app.post("/api/admin/ai/greeting", authMiddleware, async (req, res) => {
+    try {
+      if (!genAI) {
+        return res.status(503).json({ error: "AI service not configured" });
+      }
+      const hour = new Date().getHours();
+      const timeOfDay = hour < 12 ? "morning" : hour < 17 ? "afternoon" : "evening";
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: "You are VyomAi's brand voice assistant. Generate warm, professional greetings.",
+      });
+      const prompt = `Write a short, warm welcome greeting for VyomAi Cloud Pvt. Ltd website visitors. It's currently ${timeOfDay}. The greeting should be 1-2 sentences, mention VyomAi, and be professional yet friendly. Start with "Namaste! Good ${timeOfDay}!". Return ONLY the greeting text, no quotes or labels.`;
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      res.json({ text });
+    } catch (error) {
+      console.error("AI greeting generation error:", error);
+      res.status(500).json({ error: "AI greeting generation failed" });
     }
   });
 

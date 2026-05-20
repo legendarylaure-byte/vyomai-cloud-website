@@ -121,8 +121,8 @@ ADMIN_USERNAME=your_username
 ADMIN_PASSWORD=your_strong_password
 SESSION_SECRET=generated_random_string
 
-# OpenAI
-OPENAI_API_KEY=sk-xxxxx
+# Gemini
+GEMINI_API_KEY=your_gemini_key
 
 # Email (SendGrid)
 SENDGRID_API_KEY=SG.xxxxx

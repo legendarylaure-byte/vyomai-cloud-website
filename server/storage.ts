@@ -110,7 +110,14 @@ export interface IStorage {
 }
 
 let storage: any;
-const isFirebaseAvailable = process.env.FIREBASE_SERVICE_ACCOUNT ? true : false;
+import { readdirSync, existsSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const keysDir = join(__dirname, "..", "keys");
+const hasLocalKeys = existsSync(keysDir) && readdirSync(keysDir).some(f => f.endsWith(".json"));
+const isFirebaseAvailable = process.env.FIREBASE_SERVICE_ACCOUNT || hasLocalKeys ? true : false;
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
@@ -225,10 +232,14 @@ export class MemStorage implements IStorage {
       welcomePopupImageUrl: "",
       welcomePopupAnimationStyle: "fade",
       welcomePopupDismissable: true,
+      aiGreetingEnabled: false,
+      aiGreetingText: "",
       emailProvider: "smtp",
       emailFromName: "VyomAi",
       emailFromAddress: "info@vyomai.cloud",
+      smtpHost: "smtp.zoho.com",
       smtpPort: "587",
+      smtpUser: "info@vyomai.cloud",
       smtpSecure: false,
       emailProviderPriority: "smtp,gmail,sendgrid",
       socialMediaEnabled: {

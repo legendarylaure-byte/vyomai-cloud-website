@@ -12,7 +12,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Trash2, Edit, Loader2, Mail, Phone, User, MessageSquare, Clock, CheckCircle2, Eye, Archive, Send, Building, Tag } from "lucide-react";
+import { Trash2, Edit, Loader2, Mail, Phone, User, MessageSquare, Clock, CheckCircle2, Eye, Archive, Send, Building, Tag, Sparkles } from "lucide-react";
 import { type CustomerInquiry } from "@shared/schema";
 import { z } from "zod";
 
@@ -45,6 +45,7 @@ export function InquiriesPage() {
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [editingInquiry, setEditingInquiry] = useState<CustomerInquiry | null>(null);
   const [emailTarget, setEmailTarget] = useState<CustomerInquiry | null>(null);
+  const [isGeneratingReply, setIsGeneratingReply] = useState(false);
 
   const { data: inquiries = [], isLoading } = useQuery<CustomerInquiry[]>({
     queryKey: ["/api/admin/inquiries"],
@@ -157,7 +158,32 @@ export function InquiriesPage() {
     setIsEmailDialogOpen(true);
   };
 
-  // Filter by type and status
+  const suggestAiReply = async () => {
+    if (!emailTarget) return;
+    setIsGeneratingReply(true);
+    try {
+      const token = localStorage.getItem("vyomai-admin-token");
+      const customerMsg = emailTarget.message || "Inquiry from " + emailTarget.name;
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          prompt: `Write a professional, warm email response to this customer inquiry. Customer name: ${emailTarget.name}. Their message: "${customerMsg}". Subject: "${emailTarget.subject || "General Inquiry"}". Acknowledge their inquiry, say we'll get back to them within 24 hours, and sign off as "VyomAi Team". Return ONLY the email body, no subject line.`,
+          system: "You are a professional customer service representative for VyomAi Cloud Pvt. Ltd.",
+        }),
+      });
+      const data = await res.json();
+      if (data.text) {
+        emailForm.setValue("message", data.text);
+        toast({ title: "AI reply generated ✨", description: "Review and edit before sending" });
+      }
+    } catch {
+      toast({ title: "Generation failed", description: "Please try again", variant: "destructive" });
+    } finally {
+      setIsGeneratingReply(false);
+    }
+  };
+
   const filtered = inquiries.filter((i) => {
     const typeMatch = filterType === "all" || i.inquiryType === filterType;
     const statusMatch = filterStatus === "all" || i.status === filterStatus;
@@ -481,7 +507,20 @@ export function InquiriesPage() {
                   <FormItem>
                     <FormLabel>Message</FormLabel>
                     <FormControl>
-                      <Textarea placeholder="Email message" rows={6} {...field} />
+                      <div className="space-y-2">
+                        <Textarea placeholder="Email message" rows={6} {...field} />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={suggestAiReply}
+                          disabled={isGeneratingReply}
+                          className="gap-2 text-purple-600 border-purple-300 hover:bg-purple-50"
+                        >
+                          {isGeneratingReply ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                          {isGeneratingReply ? "Generating..." : "Suggest AI Reply"}
+                        </Button>
+                      </div>
                     </FormControl>
                     <FormMessage />
                   </FormItem>

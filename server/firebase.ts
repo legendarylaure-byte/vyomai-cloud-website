@@ -37,14 +37,23 @@ if (serviceAccountJson) {
     if (admin.apps.length === 0) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount as admin.ServiceAccount),
+        projectId: serviceAccount.project_id,
       });
     }
 
     firestore = admin.firestore();
+    firestore.settings({
+      ignoreUndefinedProperties: true,
+    });
     firebaseInitialized = true;
     console.log("Firebase Admin SDK initialized successfully");
-  } catch (err) {
+  } catch (err: any) {
     console.error("Failed to initialize Firebase Admin SDK:", err);
+    if (err.code === 5 || err.message?.includes("NOT_FOUND")) {
+      console.log("\n💡 TIP: Go to https://console.firebase.google.com/project/vyomai-website/firestore");
+      console.log("   Check that Firestore database is created (not Datastore) in region 'nam5 (us-central)'");
+      console.log("   If already created, try deleting and re-creating. Choose 'Native mode', not Datastore mode.\n");
+    }
   }
 } else {
   console.log("FIREBASE_SERVICE_ACCOUNT not set — Firebase storage disabled");

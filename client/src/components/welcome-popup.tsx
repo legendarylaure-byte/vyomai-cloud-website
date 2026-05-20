@@ -171,7 +171,9 @@ export function WelcomePopup() {
               transition={{ delay: 0.4 }}
               className="text-gray-600 text-lg mb-8 leading-relaxed"
             >
-              {settings.welcomePopupMessage || "Welcome to our website"}
+              {settings.aiGreetingEnabled && settings.aiGreetingText
+                ? settings.aiGreetingText
+                : settings.welcomePopupMessage || "Welcome to our website"}
             </motion.p>
 
             <motion.button

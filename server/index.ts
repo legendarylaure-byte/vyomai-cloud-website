@@ -85,7 +85,7 @@ app.use(
         scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
-        connectSrc: ["'self'", "https://api.openai.com", "https://fonepay.com", "https://sendgrid.com", "https://*.googleapis.com"],
+        connectSrc: ["'self'", "https://fonepay.com", "https://sendgrid.com", "https://*.googleapis.com", "https://generativelanguage.googleapis.com"],
         imgSrc: ["'self'", "data:", "https:", "blob:"],
         mediaSrc: ["'self'", "https:", "data:"],
         frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://player.vimeo.com", "https://vimeo.com"],

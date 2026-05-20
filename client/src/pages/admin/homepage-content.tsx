@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Trash2, Edit, Save, Loader2, GripVertical, Eye, EyeOff, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, Edit, Save, Loader2, GripVertical, Eye, EyeOff, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -111,11 +111,12 @@ export function HomepageContentPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="hero">Hero Section</TabsTrigger>
           <TabsTrigger value="about">About Section</TabsTrigger>
           <TabsTrigger value="services">Services</TabsTrigger>
           <TabsTrigger value="solutions">Solutions</TabsTrigger>
+          <TabsTrigger value="greeting">AI Greeting</TabsTrigger>
           <TabsTrigger value="footer">Footer</TabsTrigger>
         </TabsList>
 
@@ -133,6 +134,10 @@ export function HomepageContentPage() {
 
         <TabsContent value="solutions">
           <SolutionsSection />
+        </TabsContent>
+
+        <TabsContent value="greeting">
+          <GreetingSection />
         </TabsContent>
 
         <TabsContent value="footer">
@@ -1407,6 +1412,113 @@ function SolutionsSection() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function GreetingSection() {
+  const { toast } = useToast();
+  const [greetingText, setGreetingText] = useState("");
+  const [greetingEnabled, setGreetingEnabled] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+
+  const { data: settings, isLoading } = useQuery<any>({
+    queryKey: ["/api/settings"],
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const token = localStorage.getItem("vyomai-admin-token");
+      return apiRequest("PUT", "/api/admin/settings", data, { Authorization: `Bearer ${token}` });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Greeting settings saved" });
+    },
+    onError: () => {
+      toast({ title: "Failed to save greeting settings", variant: "destructive" });
+    },
+  });
+
+  useEffect(() => {
+    if (settings) {
+      setGreetingEnabled(settings.aiGreetingEnabled ?? false);
+      setGreetingText(settings.aiGreetingText || "");
+    }
+  }, [settings]);
+
+  const generateGreeting = async () => {
+    setIsGenerating(true);
+    try {
+      const token = localStorage.getItem("vyomai-admin-token");
+      const res = await apiRequest("POST", "/api/admin/ai/greeting", {}, { Authorization: `Bearer ${token}` });
+      setGreetingText(res.text);
+      toast({ title: "AI greeting generated ✨" });
+    } catch {
+      toast({ title: "Failed to generate greeting", variant: "destructive" });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  const handleSave = () => {
+    updateMutation.mutate({
+      aiGreetingEnabled: greetingEnabled,
+      aiGreetingText: greetingText,
+    });
+  };
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>AI Welcome Greeting</CardTitle>
+        <CardDescription>Generate and customize a dynamic AI welcome greeting for the welcome popup</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="flex items-center justify-between rounded-lg border p-3">
+          <div>
+            <p className="font-medium">Enable AI Greeting</p>
+            <p className="text-sm text-muted-foreground">Show AI-generated greeting in the welcome popup</p>
+          </div>
+          <Switch checked={greetingEnabled} onCheckedChange={setGreetingEnabled} />
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Greeting Text</label>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={generateGreeting}
+              disabled={isGenerating}
+              className="gap-1.5"
+            >
+              {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+              Generate with AI
+            </Button>
+          </div>
+          <Textarea
+            value={greetingText}
+            onChange={(e) => setGreetingText(e.target.value)}
+            placeholder="Click 'Generate with AI' to create a greeting, or type your own..."
+            rows={4}
+            className="mt-2"
+          />
+          <p className="text-xs text-muted-foreground">
+            The greeting will adapt based on time of day (morning/afternoon/evening) when generated.
+          </p>
+        </div>
+
+        <Button onClick={handleSave} disabled={updateMutation.isPending}>
+          {updateMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Save className="mr-2 h-4 w-4" />
+          Save Greeting Settings
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

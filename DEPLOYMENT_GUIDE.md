@@ -25,7 +25,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ADMIN_USERNAME=your_secure_username
 ADMIN_PASSWORD=your_very_secure_password
 SESSION_SECRET=generated_random_string
-OPENAI_API_KEY=your_openai_key
+GEMINI_API_KEY=your_gemini_key
 DATABASE_URL=postgresql://user:password@host/vyomai
 ```
 
