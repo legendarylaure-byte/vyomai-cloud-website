@@ -483,6 +483,34 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
     twoFactorToken: z.string().optional(),
   });
 
+  // Diagnostic endpoint to check admin user state (no auth required)
+  app.get("/api/admin/diagnostics", async (_req, res) => {
+    try {
+      const adminUsername = process.env.ADMIN_USERNAME || "not set";
+      const adminEmail = process.env.ADMIN_EMAIL || "not set";
+      const user = await storage.getUserByUsername(adminUsername);
+      if (user) {
+        res.json({
+          exists: true,
+          username: user.username,
+          email: user.email || "(none)",
+          twoFactorEnabled: user.twoFactorEnabled || false,
+          role: user.role || "admin",
+        });
+      } else {
+        const byEmail = adminEmail !== "not set" ? await storage.getUserByEmail(adminEmail) : null;
+        res.json({
+          exists: false,
+          searchedUsername: adminUsername,
+          searchedEmail: adminEmail,
+          foundByEmail: byEmail ? { username: byEmail.username } : null,
+        });
+      }
+    } catch (error) {
+      res.status(500).json({ error: "Diagnostics failed" });
+    }
+  });
+
   app.post("/api/admin/login", async (req, res) => {
     try {
       const parsed = loginSchema.safeParse(req.body);
@@ -491,9 +519,15 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       }
       const { username, password, twoFactorToken } = parsed.data;
 
-      const user = await storage.getUserByUsername(username);
+      let user = await storage.getUserByUsername(username);
+
+      // Fallback: try finding by email if username lookup fails
+      if (!user && username.includes("@")) {
+        user = await storage.getUserByEmail(username);
+      }
 
       if (!user) {
+        console.warn(`Login failed: user not found for "${username}"`);
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
@@ -501,25 +535,30 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       const isPasswordValid = await bcryptjs.compare(password, user.password);
 
       if (!isPasswordValid) {
+        console.warn(`Login failed: wrong password for "${username}"`);
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
       // Check if 2FA is enabled
       if (user.twoFactorEnabled && user.twoFactorSecret) {
         if (!twoFactorToken) {
+          console.warn(`Login blocked: 2FA required for "${username}"`);
           return res.status(403).json({ error: "2FA required", requires2FA: true });
         }
 
         // Verify 2FA token
         if (!verifyTwoFactorToken(user.twoFactorSecret, twoFactorToken)) {
+          console.warn(`Login failed: invalid 2FA token for "${username}"`);
           return res.status(401).json({ error: "Invalid 2FA token" });
         }
       }
 
       const token = jwt.sign({ username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '24h' });
+      console.log(`✅ Login success: "${username}" (role: ${user.role || "admin"})`);
 
       res.json({ success: true, token });
     } catch (error) {
+      console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
     }
   });
