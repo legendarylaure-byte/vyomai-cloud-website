@@ -130,11 +130,38 @@ export default function AdminLoginQR() {
   const onLoginSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      const result = await apiRequest("POST", "/api/admin/login", data);
-      if (result.success) {
-        localStorage.setItem("vyomai-admin-token", result.token);
+      const res = await fetch("/api/admin/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const body = await res.json();
+      if (res.ok && body.success) {
+        localStorage.setItem("vyomai-admin-token", body.token);
         setLocation("/admin/dashboard");
+        return;
       }
+      if (body.requires2FA) {
+        toast({
+          title: "2FA Required",
+          description: "Two-factor authentication code is needed. Use the 2FA tab to enter your code.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (res.status === 429) {
+        toast({
+          title: "Too Many Attempts",
+          description: "Please wait 15 minutes before trying again.",
+          variant: "destructive",
+        });
+        return;
+      }
+      toast({
+        title: "Login Failed",
+        description: body.error || "Invalid username or password.",
+        variant: "destructive",
+      });
     } catch (error) {
       toast({
         title: "Login Failed",

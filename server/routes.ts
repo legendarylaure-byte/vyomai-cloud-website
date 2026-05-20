@@ -607,6 +607,40 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
     }
   });
 
+  // Disable 2FA using email verification (no auth required — uses same code system as password reset)
+  app.post("/api/admin/disable-2fa", async (req, res) => {
+    try {
+      const schema = z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+      });
+      const validated = schema.parse(req.body);
+
+      const isValid = await storage.verifyResetCode(validated.email, validated.code);
+      if (!isValid) {
+        return res.status(401).json({ error: "Invalid or expired verification code" });
+      }
+
+      const user = await storage.getUserByEmail(validated.email);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await storage.updateUser(user.id, { twoFactorEnabled: false, twoFactorSecret: "" });
+
+      // Clear the used code
+      await storage.clearResetCode(validated.email);
+
+      res.json({ success: true, message: "2FA disabled successfully" });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("Disable 2FA error:", error);
+      res.status(500).json({ error: "Failed to disable 2FA" });
+    }
+  });
+
   // 2FA Setup route
   app.post("/api/admin/setup-2fa", authMiddleware, async (req, res) => {
     try {

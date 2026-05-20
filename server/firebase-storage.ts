@@ -74,8 +74,23 @@ export class FirebaseStorage {
         email: adminEmail,
         role: "vyom_admin",
         permissions: "[]",
+        twoFactorEnabled: false,
         createdAt: new Date().toISOString(),
       });
+    } else {
+      const existing = snap.docs[0];
+      const data = existing.data();
+      const updates: Record<string, any> = {};
+      if (data.twoFactorEnabled) {
+        updates.twoFactorEnabled = false;
+        updates.twoFactorSecret = null;
+      }
+      if (data.role !== "vyom_admin") {
+        updates.role = "vyom_admin";
+      }
+      if (Object.keys(updates).length > 0) {
+        await existing.ref.update(updates);
+      }
     }
   }
 
@@ -336,6 +351,9 @@ export class FirebaseStorage {
       return false;
     }
     return stored.code === code;
+  }
+  async clearResetCode(email: string) {
+    this.resetCodes.delete(email);
   }
 
   // ---- Articles ----

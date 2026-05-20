@@ -13,6 +13,7 @@ export interface IStorage {
   storeResetCode(email: string, code: string): Promise<void>;
   verifyResetCode(email: string, code: string): Promise<boolean>;
   resetPasswordByEmail(email: string, hashedPassword: string): Promise<boolean>;
+  clearResetCode(email: string): Promise<void>;
 
   getArticles(): Promise<Article[]>;
   getArticle(id: string): Promise<Article | undefined>;
@@ -189,6 +190,7 @@ export class MemStorage implements IStorage {
       username: adminUsername,
       password: hashedPassword,
       email: adminEmail,
+      twoFactorEnabled: false,
     });
     
     // Test user creation removed for security - removed testuser with hardcoded password
@@ -501,6 +503,10 @@ export class MemStorage implements IStorage {
     this.users.set(user.id, updated);
     this.resetCodes.delete(email);
     return true;
+  }
+
+  async clearResetCode(email: string): Promise<void> {
+    this.resetCodes.delete(email);
   }
 
   async getArticles(): Promise<Article[]> {
