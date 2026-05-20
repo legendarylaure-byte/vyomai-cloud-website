@@ -151,7 +151,7 @@ export async function registerRoutes(
   app.get("/api/articles", async (req, res) => {
     try {
       const articles = await storage.getArticles();
-      res.json(articles);
+      res.json(articles.filter((a: Article) => a.published));
     } catch (error) {
       res.status(500).json({ error: "Failed to get articles" });
     }
@@ -160,12 +160,22 @@ export async function registerRoutes(
   app.get("/api/articles/:id", async (req, res) => {
     try {
       const article = await storage.getArticle(req.params.id);
-      if (!article) {
+      if (!article || !article.published) {
         return res.status(404).json({ error: "Article not found" });
       }
       res.json(article);
     } catch (error) {
       res.status(500).json({ error: "Failed to get article" });
+    }
+  });
+  
+  // Admin-only: returns ALL articles including unpublished
+  app.get("/api/admin/articles", authMiddleware, async (req, res) => {
+    try {
+      const articles = await storage.getArticles();
+      res.json(articles);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get articles" });
     }
   });
 
@@ -248,7 +258,7 @@ export async function registerRoutes(
     }
   });
 
-  // Team member routes
+  // Team member route (public GET)
   app.get("/api/team", async (req, res) => {
     try {
       const members = await storage.getTeamMembers();
@@ -258,101 +268,13 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/team", authMiddleware, async (req, res) => {
-    try {
-      const validated = insertTeamMemberSchema.parse(req.body);
-      const member = await storage.createTeamMember(validated);
-      res.json(member);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid team member data" });
-    }
-  });
-
-  app.put("/api/team/:id", authMiddleware, async (req, res) => {
-    try {
-      const updated = await storage.updateTeamMember(req.params.id, req.body);
-      if (!updated) {
-        return res.status(404).json({ error: "Team member not found" });
-      }
-      res.json(updated);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update team member" });
-    }
-  });
-
-  app.delete("/api/team/:id", authMiddleware, async (req, res) => {
-    try {
-      const success = await storage.deleteTeamMember(req.params.id);
-      if (!success) {
-        return res.status(404).json({ error: "Team member not found" });
-      }
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete team member" });
-    }
-  });
-
-  // Pricing routes
+  // Pricing route (public GET)
   app.get("/api/pricing", async (req, res) => {
     try {
       const packages = await storage.getPricingPackages();
       res.json(packages);
     } catch (error) {
       res.status(500).json({ error: "Failed to get pricing packages" });
-    }
-  });
-
-  app.post("/api/pricing", authMiddleware, async (req, res) => {
-    try {
-      const validated = insertPricingPackageSchema.parse(req.body);
-      const pkg = await storage.createPricingPackage(validated);
-      res.json(pkg);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid pricing package data" });
-    }
-  });
-
-  app.put("/api/pricing/:id", authMiddleware, async (req, res) => {
-    try {
-      const updated = await storage.updatePricingPackage(req.params.id, req.body);
-      if (!updated) {
-        return res.status(404).json({ error: "Pricing package not found" });
-      }
-      res.json(updated);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to update pricing package" });
-    }
-  });
-
-  app.delete("/api/pricing/:id", authMiddleware, async (req, res) => {
-    try {
-      const success = await storage.deletePricingPackage(req.params.id);
-      if (!success) {
-        return res.status(404).json({ error: "Pricing package not found" });
-      }
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete pricing package" });
-    }
-  });
-
-  // Project Discussion routes
-  app.get("/api/project-discussion", async (req, res) => {
-    try {
-      const discussion = await storage.getProjectDiscussion();
-      res.json(discussion);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get project discussion" });
-    }
-  });
-
-  app.put("/api/project-discussion", authMiddleware, async (req, res) => {
-    try {
-      const validated = insertProjectDiscussionSchema.parse(req.body);
-      const updated = await storage.updateProjectDiscussion(validated);
-      res.json(updated);
-    } catch (error) {
-      res.status(400).json({ error: "Invalid project discussion data" });
     }
   });
 
@@ -1686,6 +1608,22 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       res.json(requests);
     } catch (error) {
       res.status(500).json({ error: "Failed to get pricing requests" });
+    }
+  });
+
+  app.put("/api/admin/one-time-requests/:id", authMiddleware, async (req, res) => {
+    try {
+      const { status } = req.body;
+      if (!status || !["pending", "contacted", "converted"].includes(status)) {
+        return res.status(400).json({ error: "Invalid status. Must be: pending, contacted, or converted" });
+      }
+      const updated = await storage.updateOneTimePricingRequest(req.params.id, { status });
+      if (!updated) {
+        return res.status(404).json({ error: "Pricing request not found" });
+      }
+      res.json(updated);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update pricing request" });
     }
   });
 

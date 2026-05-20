@@ -50,7 +50,7 @@ export default function Home() {
     <div className="min-h-screen bg-background">
       <Header />
       <main>
-        <HeroSection />
+        {shouldShow(settings?.showHomeSection) && <HeroSection />}
         {shouldShow(settings?.showAboutSection) && <AboutSection />}
         {shouldShow(settings?.showServicesSection) && <ServicesSection />}
         {shouldShow(settings?.showSolutionsSection) && <SolutionsSection />}

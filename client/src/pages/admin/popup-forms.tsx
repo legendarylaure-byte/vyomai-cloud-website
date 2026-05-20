@@ -46,6 +46,10 @@ export function PopupFormsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingForm, setEditingForm] = useState<PopupForm | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [isGeneratingMessage, setIsGeneratingMessage] = useState(false);
+  const [isGeneratingButton, setIsGeneratingButton] = useState(false);
+  const [isGeneratingSuccess, setIsGeneratingSuccess] = useState(false);
 
   const [formData, setFormData] = useState({
     name: "",
@@ -176,6 +180,50 @@ export function PopupFormsPage() {
     } else {
       createMutation.mutate(formData);
     }
+  };
+
+  const generateWithAI = async (field: string, prompt: string) => {
+    const token = localStorage.getItem("vyomai-admin-token");
+    try {
+      const res = await fetch("/api/admin/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ prompt, system: "You are a marketing copywriter for VyomAi Cloud, an AI solutions company." }),
+      });
+      const data = await res.json();
+      return data.text;
+    } catch {
+      toast({ title: "AI generation failed", variant: "destructive" });
+      return "";
+    }
+  };
+
+  const generateTitle = async () => {
+    setIsGeneratingTitle(true);
+    const text = await generateWithAI("title", "Generate a short, catchy popup title for a VyomAi website visitor. Examples: 'Welcome to VyomAi!', 'Unlock AI Power', 'Your AI Journey Starts Here'. Return ONLY the title text, no quotes.");
+    if (text) setFormData(prev => ({ ...prev, title: text.trim() }));
+    setIsGeneratingTitle(false);
+  };
+
+  const generateMessage = async () => {
+    setIsGeneratingMessage(true);
+    const text = await generateWithAI("message", "Generate a friendly, engaging popup message for VyomAi website visitors. Keep it 1-2 sentences. Mention AI solutions, transformation, or innovation. Return ONLY the message text.");
+    if (text) setFormData(prev => ({ ...prev, message: text.trim() }));
+    setIsGeneratingMessage(false);
+  };
+
+  const generateButtonText = async () => {
+    setIsGeneratingButton(true);
+    const text = await generateWithAI("button", "Generate a short, action-oriented button text for a VyomAi popup. Examples: 'Get Started', 'Explore AI', 'Learn More', 'Claim Offer'. Return ONLY the button text, 1-3 words.");
+    if (text) setFormData(prev => ({ ...prev, buttonText: text.trim() }));
+    setIsGeneratingButton(false);
+  };
+
+  const generateSuccessMessage = async () => {
+    setIsGeneratingSuccess(true);
+    const text = await generateWithAI("success", "Generate a short thank-you/success message for a VyomAi popup form submission. Examples: 'Thank you! We'll be in touch.', 'You're on the list!', 'Message sent successfully!'. Return ONLY the message text.");
+    if (text) setFormData(prev => ({ ...prev, successMessage: text.trim() }));
+    setIsGeneratingSuccess(false);
   };
 
   const applyTemplate = (templateId: string) => {
@@ -392,7 +440,13 @@ export function PopupFormsPage() {
               </div>
 
               <div>
-                <Label className="mb-2 block">Title</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Title</Label>
+                  <Button type="button" variant="ghost" size="sm" onClick={generateTitle} disabled={isGeneratingTitle} className="gap-1 h-7 text-xs text-purple-600">
+                    {isGeneratingTitle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                    AI
+                  </Button>
+                </div>
                 <Input
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -401,7 +455,13 @@ export function PopupFormsPage() {
               </div>
 
               <div>
-                <Label className="mb-2 block">Message</Label>
+                <div className="flex items-center justify-between mb-2">
+                  <Label>Message</Label>
+                  <Button type="button" variant="ghost" size="sm" onClick={generateMessage} disabled={isGeneratingMessage} className="gap-1 h-7 text-xs text-purple-600">
+                    {isGeneratingMessage ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                    AI
+                  </Button>
+                </div>
                 <Textarea
                   value={formData.message}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
@@ -412,7 +472,13 @@ export function PopupFormsPage() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="mb-2 block">Button Text</Label>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label>Button Text</Label>
+                    <Button type="button" variant="ghost" size="sm" onClick={generateButtonText} disabled={isGeneratingButton} className="gap-1 h-7 text-xs text-purple-600">
+                      {isGeneratingButton ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      AI
+                    </Button>
+                  </div>
                   <Input
                     value={formData.buttonText}
                     onChange={(e) => setFormData({ ...formData, buttonText: e.target.value })}
@@ -429,19 +495,35 @@ export function PopupFormsPage() {
                 </div>
               </div>
 
-              <div>
-                <Label className="mb-2 block">Image URL (optional)</Label>
-                <Input
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                  placeholder="https://..."
-                />
+                <div>
+                  <Label className="mb-2 block">Image URL (optional)</Label>
+                  <Input
+                    value={formData.imageUrl}
+                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                    placeholder="https://..."
+                  />
+                </div>
               </div>
-            </div>
 
-            <div className="space-y-4">
-              <div>
-                <Label className="mb-2 block">Animation Style</Label>
+              <div className="space-y-4">
+                <div>
+                  <Label className="mb-2 block">Success Message</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={formData.successMessage}
+                      onChange={(e) => setFormData({ ...formData, successMessage: e.target.value })}
+                      placeholder="Thank you!"
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="outline" size="sm" onClick={generateSuccessMessage} disabled={isGeneratingSuccess} className="gap-1 text-purple-600 border-purple-300 whitespace-nowrap">
+                      {isGeneratingSuccess ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
+                      AI
+                    </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <Label className="mb-2 block">Animation Style</Label>
                 <div className="grid grid-cols-2 gap-2">
                   {animationStyles.map((style) => (
                     <button

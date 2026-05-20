@@ -54,24 +54,10 @@ export function CommunicationsPage() {
 
   const { data: bookings = [], isLoading: bookingsLoading } = useQuery<BookingRequest[]>({
     queryKey: ["/api/admin/bookings"],
-    queryFn: async () => {
-      const token = localStorage.getItem("vyomai-admin-token");
-      const res = await fetch("/api/admin/bookings", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.json();
-    },
   });
 
   const { data: inquiries = [], isLoading: inquiriesLoading } = useQuery<CustomerInquiry[]>({
     queryKey: ["/api/admin/inquiries"],
-    queryFn: async () => {
-      const token = localStorage.getItem("vyomai-admin-token");
-      const res = await fetch("/api/admin/inquiries", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      return res.json();
-    },
   });
 
   const updateBookingMutation = useMutation({

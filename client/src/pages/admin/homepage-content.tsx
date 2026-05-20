@@ -10,11 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
+import { DraggableList } from "@/components/draggable-list";
 import { z } from "zod";
 
 const heroFormSchema = z.object({
@@ -99,6 +101,44 @@ export function HomepageContentPage() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("hero");
 
+  // Section visibility toggles
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
+  const [showHome, setShowHome] = useState(true);
+  const [showAbout, setShowAbout] = useState(true);
+  const [showServices, setShowServices] = useState(true);
+  const [showSolutions, setShowSolutions] = useState(true);
+  const [showProjectDiscussion, setShowProjectDiscussion] = useState(true);
+  const [showContact, setShowContact] = useState(true);
+
+  useEffect(() => {
+    if (settings) {
+      setShowHome(settings.showHomeSection ?? true);
+      setShowAbout(settings.showAboutSection ?? true);
+      setShowServices(settings.showServicesSection ?? true);
+      setShowSolutions(settings.showSolutionsSection ?? true);
+      setShowProjectDiscussion(settings.showProjectDiscussionSection ?? true);
+      setShowContact(settings.showContactSection ?? true);
+    }
+  }, [settings]);
+
+  const sectionToggleMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const token = localStorage.getItem("vyomai-admin-token");
+      return apiRequest("PUT", "/api/admin/settings", data, { Authorization: `Bearer ${token}` });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Section visibility updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update section visibility", variant: "destructive" });
+    },
+  });
+
+  const toggleSection = (field: string, value: boolean) => {
+    sectionToggleMutation.mutate({ [field]: value });
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -109,6 +149,45 @@ export function HomepageContentPage() {
           </p>
         </div>
       </div>
+
+      {/* Section Visibility */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Eye className="w-4 h-4" />
+            Section Visibility
+          </CardTitle>
+          <CardDescription>Show/hide sections on the public home page</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Hero Section</Label>
+              <Switch checked={showHome} onCheckedChange={(v) => { setShowHome(v); toggleSection("showHomeSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">About Section</Label>
+              <Switch checked={showAbout} onCheckedChange={(v) => { setShowAbout(v); toggleSection("showAboutSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Services Section</Label>
+              <Switch checked={showServices} onCheckedChange={(v) => { setShowServices(v); toggleSection("showServicesSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Solutions Section</Label>
+              <Switch checked={showSolutions} onCheckedChange={(v) => { setShowSolutions(v); toggleSection("showSolutionsSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Project Discussion</Label>
+              <Switch checked={showProjectDiscussion} onCheckedChange={(v) => { setShowProjectDiscussion(v); toggleSection("showProjectDiscussionSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Contact Section</Label>
+              <Switch checked={showContact} onCheckedChange={(v) => { setShowContact(v); toggleSection("showContactSection", v); }} />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="grid w-full grid-cols-6">
@@ -150,6 +229,7 @@ export function HomepageContentPage() {
 
 function HeroSection() {
   const { toast } = useToast();
+  const [isGeneratingSubtitle, setIsGeneratingSubtitle] = useState(false);
   
   const { data: heroContent, isLoading } = useQuery({
     queryKey: ["/api/content/hero"],
@@ -265,7 +345,26 @@ function HeroSection() {
               name="subtitle"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Subtitle</FormLabel>
+                  <div className="flex items-center justify-between">
+                    <FormLabel>Subtitle</FormLabel>
+                    <Button type="button" variant="ghost" size="sm" onClick={async () => {
+                      setIsGeneratingSubtitle(true);
+                      try {
+                        const token = localStorage.getItem("vyomai-admin-token");
+                        const res = await fetch("/api/admin/ai/generate", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                          body: JSON.stringify({ prompt: "Write a compelling subtitle for VyomAi Cloud's homepage hero section. VyomAi is an AI solutions company in Kathmandu, Nepal. The subtitle should be 1-2 sentences about transforming businesses with AI. Return ONLY the subtitle text.", system: "You are a marketing copywriter." }),
+                        });
+                        const data = await res.json();
+                        if (data.text) field.onChange(data.text.trim());
+                      } catch { toast({ title: "AI generation failed", variant: "destructive" }); }
+                      setIsGeneratingSubtitle(false);
+                    }} disabled={isGeneratingSubtitle} className="gap-1 h-7 text-xs text-purple-600">
+                      {isGeneratingSubtitle ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                      AI
+                    </Button>
+                  </div>
                   <FormControl>
                     <Textarea placeholder="Description text under the title..." {...field} />
                   </FormControl>
@@ -535,7 +634,26 @@ function AboutSection() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Description</FormLabel>
+                      <Button type="button" variant="ghost" size="sm" onClick={async () => {
+                        const toastModule = await import("@/hooks/use-toast");
+                        const t = toastModule.useToast().toast;
+                        try {
+                          const token = localStorage.getItem("vyomai-admin-token");
+                          const res = await fetch("/api/admin/ai/generate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ prompt: "Write a compelling description for the About section of VyomAi Cloud, an AI solutions company in Kathmandu, Nepal. Describe the company's mission to transform businesses with AI. 2-3 sentences. Return ONLY the description text.", system: "You are a marketing copywriter for VyomAi Cloud." }),
+                          });
+                          const data = await res.json();
+                          if (data.text) field.onChange(data.text.trim());
+                        } catch { t({ title: "AI generation failed", variant: "destructive" }); }
+                      }} className="gap-1 h-7 text-xs text-purple-600">
+                        <Sparkles className="w-3 h-3" />
+                        AI
+                      </Button>
+                    </div>
                     <FormControl>
                       <Textarea placeholder="About section description..." {...field} />
                     </FormControl>
@@ -543,7 +661,6 @@ function AboutSection() {
                   </FormItem>
                 )}
               />
-
               <Button type="submit" disabled={updateContentMutation.isPending}>
                 {updateContentMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <Save className="mr-2 h-4 w-4" />
@@ -566,9 +683,19 @@ function AboutSection() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            {aboutData?.values?.map((value: any) => (
-              <div key={value.id} className="flex items-center justify-between p-4 border rounded-lg">
+          <DraggableList
+            items={aboutData?.values || []}
+            onReorder={(items) => {
+              const token = localStorage.getItem("vyomai-admin-token");
+              const reordered = items.map((item, idx) => ({ id: item.id, order: idx }));
+              fetch("/api/admin/content/about/values/reorder", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ items: reordered }),
+              }).then(() => queryClient.invalidateQueries({ queryKey: ["/api/content/about"] }));
+            }}
+            renderItem={(value: any) => (
+              <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-4">
                   <Badge variant="outline">{value.icon}</Badge>
                   <div>
@@ -576,7 +703,7 @@ function AboutSection() {
                     <p className="text-sm text-muted-foreground line-clamp-1">{value.description}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   {value.enabled ? (
                     <Badge variant="default">Enabled</Badge>
                   ) : (
@@ -590,8 +717,8 @@ function AboutSection() {
                   </Button>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          />
         </CardContent>
       </Card>
 
@@ -871,7 +998,24 @@ function ServicesSection() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Description</FormLabel>
+                      <Button type="button" variant="ghost" size="sm" onClick={async () => {
+                        try {
+                          const token = localStorage.getItem("vyomai-admin-token");
+                          const res = await fetch("/api/admin/ai/generate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ prompt: "Write a compelling description for the Services section of VyomAi Cloud, an AI solutions company in Kathmandu, Nepal. List the types of AI services offered. 2-3 sentences. Return ONLY the description text.", system: "You are a marketing copywriter for VyomAi Cloud." }),
+                          });
+                          const data = await res.json();
+                          if (data.text) field.onChange(data.text.trim());
+                        } catch {}
+                      }} className="gap-1 h-7 text-xs text-purple-600">
+                        <Sparkles className="w-3 h-3" />
+                        AI
+                      </Button>
+                    </div>
                     <FormControl>
                       <Textarea placeholder="Services section description..." {...field} />
                     </FormControl>
@@ -902,9 +1046,19 @@ function ServicesSection() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            {servicesData?.items?.map((item: any) => (
-              <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
+          <DraggableList
+            items={servicesData?.items || []}
+            onReorder={(items) => {
+              const token = localStorage.getItem("vyomai-admin-token");
+              const reordered = items.map((item, idx) => ({ id: item.id, order: idx }));
+              fetch("/api/admin/content/services/items/reorder", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ items: reordered }),
+              }).then(() => queryClient.invalidateQueries({ queryKey: ["/api/content/services"] }));
+            }}
+            renderItem={(item: any) => (
+              <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-4">
                   <Badge variant="outline">{item.icon}</Badge>
                   <div>
@@ -926,8 +1080,8 @@ function ServicesSection() {
                   </Button>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          />
         </CardContent>
       </Card>
 
@@ -1229,7 +1383,24 @@ function SolutionsSection() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Description</FormLabel>
+                      <Button type="button" variant="ghost" size="sm" onClick={async () => {
+                        try {
+                          const token = localStorage.getItem("vyomai-admin-token");
+                          const res = await fetch("/api/admin/ai/generate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ prompt: "Write a compelling description for the Solutions section of VyomAi Cloud, an AI solutions company in Kathmandu, Nepal. Describe how their solutions integrate with platforms. 2-3 sentences. Return ONLY the description text.", system: "You are a marketing copywriter for VyomAi Cloud." }),
+                          });
+                          const data = await res.json();
+                          if (data.text) field.onChange(data.text.trim());
+                        } catch {}
+                      }} className="gap-1 h-7 text-xs text-purple-600">
+                        <Sparkles className="w-3 h-3" />
+                        AI
+                      </Button>
+                    </div>
                     <FormControl>
                       <Textarea placeholder="Solutions section description..." {...field} />
                     </FormControl>
@@ -1260,9 +1431,19 @@ function SolutionsSection() {
           </Button>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4">
-            {solutionsData?.items?.map((item: any) => (
-              <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
+          <DraggableList
+            items={solutionsData?.items || []}
+            onReorder={(items) => {
+              const token = localStorage.getItem("vyomai-admin-token");
+              const reordered = items.map((item, idx) => ({ id: item.id, order: idx }));
+              fetch("/api/admin/content/solutions/items/reorder", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ items: reordered }),
+              }).then(() => queryClient.invalidateQueries({ queryKey: ["/api/content/solutions"] }));
+            }}
+            renderItem={(item: any) => (
+              <div className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="flex items-center gap-4">
                   <Badge variant="outline">{item.icon}</Badge>
                   <div>
@@ -1287,8 +1468,8 @@ function SolutionsSection() {
                   </Button>
                 </div>
               </div>
-            ))}
-          </div>
+            )}
+          />
         </CardContent>
       </Card>
 

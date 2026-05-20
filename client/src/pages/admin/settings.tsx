@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type SiteSettings } from "@shared/schema";
 import { 
-  Eye, Bell, Save, Loader2, Settings, PenLine, Globe, Shield, Lock, Server
+  Save, Loader2, Settings, PenLine, Globe, Shield, Lock, Server
 } from "lucide-react";
 import {
   Dialog,
@@ -35,10 +35,6 @@ export function SettingsPage() {
   const [popupDismissable, setPopupDismissable] = useState(true);
   const [showPreview, setShowPreview] = useState(false);
 
-  // Home Section Visibility State
-  const [showTeamSection, setShowTeamSection] = useState(true);
-  const [showPricingSection, setShowPricingSection] = useState(true);
-
   const { data: settings } = useQuery<SiteSettings>({
     queryKey: ["/api/settings"],
   });
@@ -51,10 +47,6 @@ export function SettingsPage() {
     if (settings?.welcomePopupImageUrl) setPopupImageUrl(settings.welcomePopupImageUrl);
     if (settings?.welcomePopupAnimationStyle) setPopupAnimationStyle(settings.welcomePopupAnimationStyle);
     if (settings?.welcomePopupDismissable !== undefined) setPopupDismissable(settings.welcomePopupDismissable);
-    
-    // Sync visibility settings
-    if (settings?.showTeamSection !== undefined) setShowTeamSection(settings.showTeamSection);
-    if (settings?.showPricingSection !== undefined) setShowPricingSection(settings.showPricingSection);
 
     // Sync SMTP settings
     if (settings) {
@@ -129,8 +121,6 @@ export function SettingsPage() {
       welcomePopupImageUrl: popupImageUrl,
       welcomePopupAnimationStyle: popupAnimationStyle,
       welcomePopupDismissable: popupDismissable,
-      showTeamSection,
-      showPricingSection,
     });
   };
 
@@ -347,71 +337,6 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
-      <Card className="border-gray-200 shadow-sm">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-gray-900 flex items-center gap-2">
-            <Eye className="w-5 h-5 text-purple-600" />
-            Homepage Sections
-          </CardTitle>
-          <CardDescription className="text-gray-500">
-            Control which sections are displayed on the public home page
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="space-y-1">
-                <Label className="text-base font-medium text-gray-900">Meet the Innovators</Label>
-                <p className="text-sm text-gray-500">Show the team section on home page</p>
-              </div>
-              <div className="flex items-center gap-2">
-                 <Switch
-                  checked={showTeamSection}
-                  onCheckedChange={setShowTeamSection}
-                />
-                <span className={`text-sm font-medium w-16 text-right ${showTeamSection ? "text-green-600" : "text-gray-400"}`}>
-                  {showTeamSection ? "Visible" : "Hidden"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="space-y-1">
-                <Label className="text-base font-medium text-gray-900">Pricing Plans</Label>
-                <p className="text-sm text-gray-500">Show the pricing options on home page</p>
-              </div>
-               <div className="flex items-center gap-2">
-                 <Switch
-                  checked={showPricingSection}
-                  onCheckedChange={setShowPricingSection}
-                />
-                <span className={`text-sm font-medium w-16 text-right ${showPricingSection ? "text-green-600" : "text-gray-400"}`}>
-                  {showPricingSection ? "Visible" : "Hidden"}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
-              <div className="space-y-1">
-                <CardTitle className="text-base font-medium text-gray-900 flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-purple-600" />
-                  Welcome Popup
-                </CardTitle>
-                <p className="text-sm text-gray-500">Show welcome popup to visitors</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={popupEnabled}
-                  onCheckedChange={setPopupEnabled}
-                />
-                <span className={`text-sm font-medium w-16 text-right ${popupEnabled ? "text-green-600" : "text-gray-400"}`}>
-                  {popupEnabled ? "Enabled" : "Disabled"}
-                </span>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

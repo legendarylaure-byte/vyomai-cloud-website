@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Plus, Trash2, Edit, Save, Loader2, Calculator, Sparkles, CheckCircle, AlertCircle } from "lucide-react";
+import { Plus, Trash2, Edit, Save, Loader2, Calculator, Sparkles, CheckCircle, AlertCircle, Eye, Mail, Phone, DollarSign } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
@@ -12,9 +12,10 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { type PricingPackage } from "@shared/schema";
+import { type PricingPackage, type OneTimePricingRequest } from "@shared/schema";
 import { z } from "zod";
 
 const pricingFormSchema = z.object({
@@ -57,6 +58,27 @@ export function PricingPage() {
   const [aiVerification, setAiVerification] = useState<{verified: boolean; message: string} | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
+  const [showPricingSection, setShowPricingSection] = useState(true);
+  const [activeTab, setActiveTab] = useState("plans");
+
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
+  useEffect(() => {
+    if (settings?.showPricingSection !== undefined) setShowPricingSection(settings.showPricingSection);
+  }, [settings]);
+
+  const sectionToggleMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const token = localStorage.getItem("vyomai-admin-token");
+      return apiRequest("PUT", "/api/admin/settings", data, { Authorization: `Bearer ${token}` });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+      toast({ title: "Section visibility updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update section visibility", variant: "destructive" });
+    },
+  });
 
   const { data: pricingPackages = [] } = useQuery<PricingPackage[]>({
     queryKey: ["/api/pricing"],
@@ -567,76 +589,222 @@ export function PricingPage() {
         </Dialog>
       </div>
 
-      {pricingPackages.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {pricingPackages.map((pkg) => (
-            <Card key={pkg.id} className={`relative ${pkg.highlighted ? 'ring-2 ring-primary' : ''} ${!pkg.enabled ? 'opacity-60' : ''}`}>
-              {pkg.highlighted && (
-                <Badge className="absolute -top-2 left-1/2 -translate-x-1/2">Popular</Badge>
-              )}
-              {!pkg.enabled && (
-                <Badge variant="secondary" className="absolute -top-2 right-2">Draft</Badge>
-              )}
-              <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span>{pkg.name}</span>
-                  <Badge variant="outline">{pkg.baseCurrency || "NPR"}</Badge>
-                </CardTitle>
-                <CardDescription>{pkg.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-1">
-                  <div className="text-3xl font-bold">
-                    {formatPrice(pkg.monthlyPrice || pkg.price, pkg.baseCurrency || "NPR")}
-                    <span className="text-sm font-normal text-muted-foreground">/mo</span>
-                  </div>
-                  {pkg.yearlyPrice && (
-                    <div className="text-sm text-muted-foreground">
-                      {formatPrice(pkg.yearlyPrice, pkg.baseCurrency || "NPR")}/year
-                    </div>
-                  )}
-                </div>
-                
-                {pkg.features && pkg.features.length > 0 && (
-                  <ul className="text-sm space-y-1">
-                    {pkg.features.slice(0, 4).map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2">
-                        <span className="text-primary">✓</span> {feature}
-                      </li>
-                    ))}
-                    {pkg.features.length > 4 && (
-                      <li className="text-muted-foreground">+{pkg.features.length - 4} more</li>
-                    )}
-                  </ul>
-                )}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="plans">Pricing Plans</TabsTrigger>
+          <TabsTrigger value="requests">One-Time Requests</TabsTrigger>
+        </TabsList>
 
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(pkg)}>
-                    <Edit className="w-4 h-4 mr-1" /> Edit
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    size="sm"
-                    onClick={() => deletePricingMutation.mutate(pkg.id)}
-                    disabled={deletePricingMutation.isPending}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+        <TabsContent value="plans" className="space-y-6">
+          {/* Section Visibility */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Eye className="w-4 h-4 text-purple-600" />
+                  <div>
+                    <p className="font-medium text-sm">Pricing Section on Homepage</p>
+                    <p className="text-xs text-muted-foreground">Show/hide the pricing section on the public home page</p>
+                  </div>
                 </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={showPricingSection}
+                    onCheckedChange={(v) => {
+                      setShowPricingSection(v);
+                      sectionToggleMutation.mutate({ showPricingSection: v });
+                    }}
+                  />
+                  <span className={`text-xs font-medium w-14 text-right ${showPricingSection ? "text-green-600" : "text-gray-400"}`}>
+                    {showPricingSection ? "Visible" : "Hidden"}
+                  </span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {pricingPackages.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pricingPackages.map((pkg) => (
+                <Card key={pkg.id} className={`relative ${pkg.highlighted ? 'ring-2 ring-primary' : ''} ${!pkg.enabled ? 'opacity-60' : ''}`}>
+                  {pkg.highlighted && (
+                    <Badge className="absolute -top-2 left-1/2 -translate-x-1/2">Popular</Badge>
+                  )}
+                  {!pkg.enabled && (
+                    <Badge variant="secondary" className="absolute -top-2 right-2">Draft</Badge>
+                  )}
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>{pkg.name}</span>
+                      <Badge variant="outline">{pkg.baseCurrency || "NPR"}</Badge>
+                    </CardTitle>
+                    <CardDescription>{pkg.description}</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="space-y-1">
+                      <div className="text-3xl font-bold">
+                        {formatPrice(pkg.monthlyPrice || pkg.price, pkg.baseCurrency || "NPR")}
+                        <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                      </div>
+                      {pkg.yearlyPrice && (
+                        <div className="text-sm text-muted-foreground">
+                          {formatPrice(pkg.yearlyPrice, pkg.baseCurrency || "NPR")}/year
+                        </div>
+                      )}
+                    </div>
+                    
+                    {pkg.features && pkg.features.length > 0 && (
+                      <ul className="text-sm space-y-1">
+                        {pkg.features.slice(0, 4).map((feature, i) => (
+                          <li key={i} className="flex items-center gap-2">
+                            <span className="text-primary">✓</span> {feature}
+                          </li>
+                        ))}
+                        {pkg.features.length > 4 && (
+                          <li className="text-muted-foreground">+{pkg.features.length - 4} more</li>
+                        )}
+                      </ul>
+                    )}
+
+                    <div className="flex gap-2 pt-2">
+                      <Button variant="outline" size="sm" className="flex-1" onClick={() => handleEdit(pkg)}>
+                        <Edit className="w-4 h-4 mr-1" /> Edit
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        size="sm"
+                        onClick={() => deletePricingMutation.mutate(pkg.id)}
+                        disabled={deletePricingMutation.isPending}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card className="p-8 text-center">
+              <CardContent>
+                <p className="text-muted-foreground mb-4">No pricing plans yet. Create your first plan to get started.</p>
+                <Button onClick={() => setIsDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" /> Add Your First Plan
+                </Button>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      ) : (
-        <Card className="p-8 text-center">
-          <CardContent>
-            <p className="text-muted-foreground mb-4">No pricing plans yet. Create your first plan to get started.</p>
-            <Button onClick={() => setIsDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" /> Add Your First Plan
-            </Button>
+          )}
+        </TabsContent>
+
+        <TabsContent value="requests">
+          <OneTimePricingRequestsSection />
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+}
+
+function OneTimePricingRequestsSection() {
+  const { toast } = useToast();
+  const { data: requests = [], isLoading } = useQuery<OneTimePricingRequest[]>({
+    queryKey: ["/api/admin/one-time-requests"],
+  });
+
+  const updateRequestMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+      const token = localStorage.getItem("vyomai-admin-token");
+      return apiRequest("PUT", `/api/admin/one-time-requests/${id}`, { status }, { Authorization: `Bearer ${token}` });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/one-time-requests"] });
+      toast({ title: "Request status updated" });
+    },
+    onError: () => {
+      toast({ title: "Failed to update request status", variant: "destructive" });
+    },
+  });
+
+  const deleteRequestMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const token = localStorage.getItem("vyomai-admin-token");
+      return apiRequest("DELETE", `/api/admin/one-time-requests/${id}`, undefined, { Authorization: `Bearer ${token}` });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/one-time-requests"] });
+      toast({ title: "Request deleted" });
+    },
+    onError: () => {
+      toast({ title: "Failed to delete request", variant: "destructive" });
+    },
+  });
+
+  const statusColors: Record<string, string> = {
+    pending: "bg-yellow-500/20 text-yellow-700 border-yellow-500/30",
+    contacted: "bg-blue-500/20 text-blue-700 border-blue-500/30",
+    converted: "bg-green-500/20 text-green-700 border-green-500/30",
+  };
+
+  const formatCurrency = (amount: number, currency: string) => {
+    return new Intl.NumberFormat("en-US", { style: "currency", currency, minimumFractionDigits: 0 }).format(amount);
+  };
+
+  if (isLoading) {
+    return <Card><CardContent className="py-12 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto" /><p className="text-muted-foreground mt-3">Loading requests...</p></CardContent></Card>;
+  }
+
+  if (requests.length === 0) {
+    return <Card><CardContent className="py-12 text-center"><p className="text-muted-foreground">No one-time pricing requests yet.</p></CardContent></Card>;
+  }
+
+  return (
+    <div className="space-y-3">
+      {requests.map((req) => (
+        <Card key={req.id}>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold">{req.name}</h3>
+                  <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColors[req.status || "pending"]}`}>
+                    {(req.status || "pending").charAt(0).toUpperCase() + (req.status || "pending").slice(1)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-3 text-sm text-muted-foreground">
+                  <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {req.email}</span>
+                  <span className="flex items-center gap-1"><Phone className="w-3 h-3" /> {req.mobileNumber}</span>
+                  <span className="flex items-center gap-1"><DollarSign className="w-3 h-3" /> {formatCurrency(req.estimatedPrice, req.currency)}</span>
+                </div>
+                <p className="text-sm"><strong>Package:</strong> {req.packageName}</p>
+                <p className="text-sm text-muted-foreground line-clamp-2">{req.request}</p>
+                <p className="text-xs text-muted-foreground">{new Date(req.createdAt || "").toLocaleDateString()}</p>
+              </div>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Select
+                  value={req.status || "pending"}
+                  onValueChange={(value) => updateRequestMutation.mutate({ id: req.id, status: value })}
+                >
+                  <SelectTrigger className="w-32">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="contacted">Contacted</SelectItem>
+                    <SelectItem value="converted">Converted</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => deleteRequestMutation.mutate(req.id)}
+                  disabled={deleteRequestMutation.isPending}
+                  className="text-destructive"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
-      )}
+      ))}
     </div>
   );
 }

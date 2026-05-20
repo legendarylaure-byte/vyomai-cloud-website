@@ -3,6 +3,9 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Plus, Trash2, Edit, Save, Loader2, Calendar, Clock, FileText, Video, Zap, Eye, EyeOff, Search, Filter, Download, Upload, FileJson, User, Link2, Sparkles, Tags } from "lucide-react";
+import { useEffect } from "react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import html2pdf from "html2pdf.js";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,9 +63,28 @@ export function ArticlesPage() {
   const [isAiSearch, setIsAiSearch] = useState(false);
   const [aiSearchResults, setAiSearchResults] = useState<Set<string> | null>(null);
   const [isSearchingAi, setIsSearchingAi] = useState(false);
+  const [showMediaSection, setShowMediaSection] = useState(true);
+
+  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
+  useEffect(() => {
+    if (settings?.showMediaSection !== undefined) setShowMediaSection(settings.showMediaSection);
+  }, [settings]);
+
+  const sectionToggleMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const token = localStorage.getItem("vyomai-admin-token");
+      return apiRequest("PUT", "/api/admin/settings", data, { Authorization: `Bearer ${token}` });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+    },
+    onError: () => {
+      toast({ title: "Failed to update section visibility", variant: "destructive" });
+    },
+  });
 
   const { data: articles = [], isLoading } = useQuery<Article[]>({
-    queryKey: ["/api/articles"],
+    queryKey: ["/api/admin/articles"],
   });
 
   const form = useForm<ArticleFormData>({
@@ -88,7 +110,7 @@ export function ArticlesPage() {
       return apiRequest("POST", "/api/admin/articles", data, { Authorization: `Bearer ${token}` });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/articles"] });
       toast({ 
         title: "Article created as Draft ✓",
         description: "Click 'Publish' to make it visible on your website"
@@ -113,7 +135,7 @@ export function ArticlesPage() {
       return apiRequest("PUT", `/api/admin/articles/${editingArticle?.id}`, data, { Authorization: `Bearer ${token}` });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/articles"] });
       toast({ title: "Article updated successfully ✓", description: "Your changes have been saved" });
       setIsDialogOpen(false);
       setEditingArticle(null);
@@ -136,7 +158,7 @@ export function ArticlesPage() {
       return apiRequest("DELETE", `/api/admin/articles/${id}`, undefined, { Authorization: `Bearer ${token}` });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/articles"] });
       toast({ title: "Article deleted successfully ✓", description: "The article has been removed" });
     },
     onError: (error: Error) => {
@@ -164,7 +186,7 @@ export function ArticlesPage() {
       );
     },
     onSuccess: (_, article) => {
-      queryClient.invalidateQueries({ queryKey: ["/api/articles"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/articles"] });
       const isNowPublished = !article.published;
       toast({
         title: isNowPublished ? "Article Published ✓" : "Article Unpublished",
@@ -1075,6 +1097,33 @@ export function ArticlesPage() {
         </Card>
       </div>
 
+      {/* Section Visibility */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Eye className="w-4 h-4 text-purple-600" />
+              <div>
+                <p className="font-medium text-sm">Media Section on Homepage</p>
+                <p className="text-xs text-muted-foreground">Show/hide the articles & media section on the public home page</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch
+                checked={showMediaSection}
+                onCheckedChange={(v) => {
+                  setShowMediaSection(v);
+                  sectionToggleMutation.mutate({ showMediaSection: v });
+                }}
+              />
+              <span className={`text-xs font-medium w-14 text-right ${showMediaSection ? "text-green-600" : "text-gray-400"}`}>
+                {showMediaSection ? "Visible" : "Hidden"}
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Search & Filters */}
       <Card className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">
         <CardContent className="p-4">
@@ -1194,7 +1243,7 @@ export function ArticlesPage() {
           {filteredArticles.map((article, index) => (
             <Card
               key={article.id}
-              className="hover-elevate transition-all animate-in fade-in slide-in-from-bottom-2 overflow-hidden"
+              className={`hover-elevate transition-all animate-in fade-in slide-in-from-bottom-2 overflow-hidden ${!article.published ? 'opacity-60' : ''}`}
               style={{ animationDelay: `${index * 50}ms` }}
               data-testid={`article-card-${article.id}`}
             >
@@ -1218,17 +1267,15 @@ export function ArticlesPage() {
                         <div className="flex-1">
                           <h3 className="font-bold text-base line-clamp-2 hover:text-primary transition-colors">{article.title}</h3>
                         </div>
-                        <div className="flex gap-2 flex-shrink-0">
-                          {article.published && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-700 dark:text-green-400 border border-green-500/30 font-medium">
-                              Published
-                            </span>
-                          )}
-                          {!article.published && (
-                            <span className="text-xs px-2 py-1 rounded-full bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border border-yellow-500/30 font-medium">
-                              Draft
-                            </span>
-                          )}
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <Switch
+                            checked={article.published}
+                            onCheckedChange={() => togglePublishMutation.mutate(article)}
+                            disabled={togglePublishMutation.isPending}
+                          />
+                          <span className={`text-xs font-medium min-w-[4rem] ${article.published ? "text-green-600" : "text-yellow-600"}`}>
+                            {article.published ? "Published" : "Draft"}
+                          </span>
                         </div>
                       </div>
 
