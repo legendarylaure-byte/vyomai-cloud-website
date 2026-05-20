@@ -86,18 +86,21 @@ async function sendViaGmail(options: EmailOptions): Promise<EmailResult> {
 
 async function sendViaSMTP(options: EmailOptions, config: EmailConfig): Promise<EmailResult> {
   try {
-    const smtpPassword = process.env.EMAIL_SMTP_PASSWORD || config.smtpPassword;
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const effectiveHost = config.smtpHost || (resendApiKey ? "smtp.resend.com" : undefined);
+    const effectiveUser = config.smtpUser || (resendApiKey ? "resend" : undefined);
+    const smtpPassword = config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || resendApiKey || "";
     
-    if (!config.smtpHost || !config.smtpUser || !smtpPassword) {
+    if (!effectiveHost || !effectiveUser || !smtpPassword) {
       return { success: false, error: "SMTP configuration incomplete" };
     }
 
     const transporter: Transporter = nodemailer.createTransport({
-      host: config.smtpHost,
+      host: effectiveHost,
       port: parseInt(config.smtpPort || "587"),
       secure: config.smtpSecure || false,
       auth: {
-        user: config.smtpUser,
+        user: effectiveUser,
         pass: smtpPassword,
       },
     });
@@ -218,15 +221,18 @@ export async function testProvider(provider: EmailProvider, config: EmailConfig)
 
     case "smtp":
       try {
-    const smtpPassword = config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
-        if (!config.smtpHost || !config.smtpUser || !smtpPassword) {
+    const resendApiKey = process.env.RESEND_API_KEY;
+    const effectiveHost = config.smtpHost || (resendApiKey ? "smtp.resend.com" : undefined);
+    const effectiveUser = config.smtpUser || (resendApiKey ? "resend" : undefined);
+    const smtpPassword = config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || resendApiKey || "";
+        if (!effectiveHost || !effectiveUser || !smtpPassword) {
           return { success: false, error: "SMTP configuration incomplete" };
         }
         const transporter = nodemailer.createTransport({
-          host: config.smtpHost,
+          host: effectiveHost,
           port: parseInt(config.smtpPort || "587"),
           secure: config.smtpSecure || false,
-          auth: { user: config.smtpUser, pass: smtpPassword },
+          auth: { user: effectiveUser, pass: smtpPassword },
         });
         await transporter.verify();
         return { success: true, provider: "smtp" };
