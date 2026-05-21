@@ -109,6 +109,8 @@ export function HomepageContentPage() {
   const [showSolutions, setShowSolutions] = useState(true);
   const [showProjectDiscussion, setShowProjectDiscussion] = useState(true);
   const [showContact, setShowContact] = useState(true);
+  const [showFaq, setShowFaq] = useState(true);
+  const [showTestimonials, setShowTestimonials] = useState(true);
 
   useEffect(() => {
     if (settings) {
@@ -118,6 +120,8 @@ export function HomepageContentPage() {
       setShowSolutions(settings.showSolutionsSection ?? true);
       setShowProjectDiscussion(settings.showProjectDiscussionSection ?? true);
       setShowContact(settings.showContactSection ?? true);
+      setShowFaq(settings.showFaqSection ?? true);
+      setShowTestimonials(settings.showTestimonialsSection ?? true);
     }
   }, [settings]);
 
@@ -184,6 +188,14 @@ export function HomepageContentPage() {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label className="text-sm">Contact Section</Label>
               <Switch checked={showContact} onCheckedChange={(v) => { setShowContact(v); toggleSection("showContactSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Testimonials Section</Label>
+              <Switch checked={showTestimonials} onCheckedChange={(v) => { setShowTestimonials(v); toggleSection("showTestimonialsSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">FAQ Section</Label>
+              <Switch checked={showFaq} onCheckedChange={(v) => { setShowFaq(v); toggleSection("showFaqSection", v); }} />
             </div>
           </div>
         </CardContent>
@@ -269,9 +281,11 @@ function HeroSection() {
     return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
   }
 
-  if (heroContent && !form.formState.isDirty) {
-    form.reset(heroContent);
-  }
+  useEffect(() => {
+    if (heroContent && !form.formState.isDirty) {
+      form.reset(heroContent);
+    }
+  }, [heroContent]);
 
   return (
     <Card>
@@ -637,8 +651,6 @@ function AboutSection() {
                     <div className="flex items-center justify-between">
                       <FormLabel>Description</FormLabel>
                       <Button type="button" variant="ghost" size="sm" onClick={async () => {
-                        const toastModule = await import("@/hooks/use-toast");
-                        const t = toastModule.useToast().toast;
                         try {
                           const token = localStorage.getItem("vyomai-admin-token");
                           const res = await fetch("/api/admin/ai/generate", {
@@ -648,7 +660,7 @@ function AboutSection() {
                           });
                           const data = await res.json();
                           if (data.text) field.onChange(data.text.trim());
-                        } catch { t({ title: "AI generation failed", variant: "destructive" }); }
+                        } catch { toast({ title: "AI generation failed", variant: "destructive" }); }
                       }} className="gap-1 h-7 text-xs text-purple-600">
                         <Sparkles className="w-3 h-3" />
                         AI
@@ -1010,7 +1022,7 @@ function ServicesSection() {
                           });
                           const data = await res.json();
                           if (data.text) field.onChange(data.text.trim());
-                        } catch {}
+                        } catch { toast({ title: "AI generation failed", variant: "destructive" }); }
                       }} className="gap-1 h-7 text-xs text-purple-600">
                         <Sparkles className="w-3 h-3" />
                         AI
@@ -1395,7 +1407,7 @@ function SolutionsSection() {
                           });
                           const data = await res.json();
                           if (data.text) field.onChange(data.text.trim());
-                        } catch {}
+                        } catch { toast({ title: "AI generation failed", variant: "destructive" }); }
                       }} className="gap-1 h-7 text-xs text-purple-600">
                         <Sparkles className="w-3 h-3" />
                         AI

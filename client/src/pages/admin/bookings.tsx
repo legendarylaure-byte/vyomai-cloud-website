@@ -44,7 +44,7 @@ export function BookingsPage() {
   const [isGeneratingReply, setIsGeneratingReply] = useState(false);
 
   const { data: bookings = [], isLoading } = useQuery<BookingRequest[]>({
-    queryKey: ["/api/bookings"],
+    queryKey: ["/api/admin/bookings"],
     enabled: !!localStorage.getItem("vyomai-admin-token"),
   });
 
@@ -74,7 +74,7 @@ export function BookingsPage() {
       return apiRequest("PUT", `/api/admin/bookings/${editingBooking?.id}`, data, { Authorization: `Bearer ${token}` });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
       toast({ title: "Success", description: "Booking updated successfully" });
       setIsDialogOpen(false);
       setEditingBooking(null);
@@ -91,7 +91,7 @@ export function BookingsPage() {
       return apiRequest("DELETE", `/api/admin/bookings/${id}`, undefined, { Authorization: `Bearer ${token}` });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/bookings"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/bookings"] });
       toast({ title: "Success", description: "Booking deleted" });
     },
     onError: (error: any) => {

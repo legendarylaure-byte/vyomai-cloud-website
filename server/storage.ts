@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Article, type InsertArticle, type SiteSettings, type VisitorStats, type TeamMember, type InsertTeamMember, type PricingPackage, type InsertPricingPackage, type ProjectDiscussion, type InsertProjectDiscussion, type BookingRequest, type InsertBookingRequest, type SocialMediaAnalytics, type InsertSocialMediaAnalytics, type SocialMediaIntegration, type InsertSocialMediaIntegration, type OneTimePricingRequest, type InsertOneTimePricingRequest, type CustomerInquiry, type InsertCustomerInquiry, type HeroContent, type InsertHeroContent, type AboutContent, type InsertAboutContent, type AboutValue, type InsertAboutValue, type ServicesContent, type InsertServicesContent, type ServiceItem, type InsertServiceItem, type SolutionsContent, type InsertSolutionsContent, type SolutionItem, type InsertSolutionItem, type PopupForm, type InsertPopupForm } from "../shared/schema.js";
+import { type User, type InsertUser, type Article, type InsertArticle, type SiteSettings, type VisitorStats, type TeamMember, type InsertTeamMember, type PricingPackage, type InsertPricingPackage, type ProjectDiscussion, type InsertProjectDiscussion, type BookingRequest, type InsertBookingRequest, type SocialMediaAnalytics, type InsertSocialMediaAnalytics, type SocialMediaIntegration, type InsertSocialMediaIntegration, type OneTimePricingRequest, type InsertOneTimePricingRequest, type CustomerInquiry, type InsertCustomerInquiry, type HeroContent, type InsertHeroContent, type AboutContent, type InsertAboutContent, type AboutValue, type InsertAboutValue, type ServicesContent, type InsertServicesContent, type ServiceItem, type InsertServiceItem, type SolutionsContent, type InsertSolutionsContent, type SolutionItem, type InsertSolutionItem, type PopupForm, type InsertPopupForm, type UploadedFile, type Faq, type InsertFaq, type Testimonial, type InsertTestimonial } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import bcryptjs from "bcryptjs";
 export interface IStorage {
@@ -108,6 +108,20 @@ export interface IStorage {
   getSocialMediaApiConfig(platform: string): Promise<any | undefined>;
   updateSocialMediaApiConfig(platform: string, config: any): Promise<any>;
   deleteSocialMediaApiConfig(platform: string): Promise<boolean>;
+
+  getUploadedFiles(): Promise<UploadedFile[]>;
+  createUploadedFile(file: UploadedFile): Promise<UploadedFile>;
+  deleteUploadedFile(id: string): Promise<boolean>;
+
+  getFaqs(): Promise<Faq[]>;
+  createFaq(faq: InsertFaq): Promise<Faq>;
+  updateFaq(id: string, faq: Partial<InsertFaq>): Promise<Faq | undefined>;
+  deleteFaq(id: string): Promise<boolean>;
+
+  getTestimonials(): Promise<Testimonial[]>;
+  createTestimonial(t: InsertTestimonial): Promise<Testimonial>;
+  updateTestimonial(id: string, t: Partial<InsertTestimonial>): Promise<Testimonial | undefined>;
+  deleteTestimonial(id: string): Promise<boolean>;
 }
 
 let storage: any;
@@ -143,6 +157,9 @@ export class MemStorage implements IStorage {
   private solutionItems: Map<string, SolutionItem>;
   private popupForms: Map<string, PopupForm>;
   private customerInquiries: Map<string, CustomerInquiry>;
+  private uploadedFiles: Map<string, UploadedFile>;
+  private faqs: Map<string, Faq>;
+  private testimonials: Map<string, Testimonial>;
 
   constructor() {
     this.users = new Map();
@@ -167,6 +184,9 @@ export class MemStorage implements IStorage {
     this.solutionItems = new Map();
     this.popupForms = new Map();
     this.customerInquiries = new Map();
+    this.uploadedFiles = new Map();
+    this.faqs = new Map();
+    this.testimonials = new Map();
     
     // Initialize default home page content
     this.initializeHomePageDefaults();
@@ -224,6 +244,8 @@ export class MemStorage implements IStorage {
       showTeamSection: true,
       showPricingSection: true,
       showProjectDiscussionSection: true,
+      showFaqSection: true,
+      showTestimonialsSection: true,
       bookingBotEnabled: true,
       publishFooter: true,
       defaultCurrency: "USD",
@@ -1226,6 +1248,65 @@ export class MemStorage implements IStorage {
 
   async deleteSocialMediaApiConfig(_platform: string): Promise<boolean> {
     return true;
+  }
+
+  async getUploadedFiles(): Promise<UploadedFile[]> {
+    return Array.from(this.uploadedFiles.values());
+  }
+
+  async createUploadedFile(file: UploadedFile): Promise<UploadedFile> {
+    this.uploadedFiles.set(file.id, file);
+    return file;
+  }
+
+  async deleteUploadedFile(id: string): Promise<boolean> {
+    return this.uploadedFiles.delete(id);
+  }
+
+  async getFaqs(): Promise<Faq[]> {
+    return Array.from(this.faqs.values()).sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  async createFaq(faq: InsertFaq): Promise<Faq> {
+    const id = randomUUID();
+    const newFaq: Faq = { ...faq, id, createdAt: new Date().toISOString() };
+    this.faqs.set(id, newFaq);
+    return newFaq;
+  }
+
+  async updateFaq(id: string, faq: Partial<InsertFaq>): Promise<Faq | undefined> {
+    const existing = this.faqs.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...faq };
+    this.faqs.set(id, updated);
+    return updated;
+  }
+
+  async deleteFaq(id: string): Promise<boolean> {
+    return this.faqs.delete(id);
+  }
+
+  async getTestimonials(): Promise<Testimonial[]> {
+    return Array.from(this.testimonials.values()).sort((a, b) => (a.order || 0) - (b.order || 0));
+  }
+
+  async createTestimonial(t: InsertTestimonial): Promise<Testimonial> {
+    const id = randomUUID();
+    const newT: Testimonial = { ...t, id, createdAt: new Date().toISOString() };
+    this.testimonials.set(id, newT);
+    return newT;
+  }
+
+  async updateTestimonial(id: string, t: Partial<InsertTestimonial>): Promise<Testimonial | undefined> {
+    const existing = this.testimonials.get(id);
+    if (!existing) return undefined;
+    const updated = { ...existing, ...t };
+    this.testimonials.set(id, updated);
+    return updated;
+  }
+
+  async deleteTestimonial(id: string): Promise<boolean> {
+    return this.testimonials.delete(id);
   }
 }
 

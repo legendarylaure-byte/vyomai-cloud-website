@@ -16,7 +16,7 @@ export function AdminDashboard() {
   });
 
   const { data: bookings = [] } = useQuery<BookingRequest[]>({
-    queryKey: ["/api/bookings"],
+    queryKey: ["/api/admin/bookings"],
     enabled: !!localStorage.getItem("vyomai-admin-token"),
   });
 

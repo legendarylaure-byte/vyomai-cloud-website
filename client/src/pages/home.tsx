@@ -12,6 +12,8 @@ import { ProjectDiscussionSection } from "@/components/project-discussion-sectio
 import { ContactSection } from "@/components/contact-section";
 import { ConnectWithUs } from "@/components/connect-with-us";
 import { Footer } from "@/components/footer";
+import { FaqSection } from "@/components/faq-section";
+import { TestimonialsSection } from "@/components/testimonials-section";
 import { ComingSoonModal } from "@/components/coming-soon-modal";
 import { FloatingWidgets } from "@/components/floating-widgets";
 import { type SiteSettings } from "@shared/schema";
@@ -21,6 +23,8 @@ export default function Home() {
 
   const { data: settings, isLoading: settingsLoading } = useQuery<SiteSettings>({
     queryKey: ["/api/settings"],
+    staleTime: 1000 * 60 * 2,
+    refetchOnWindowFocus: true,
   });
 
   useEffect(() => {
@@ -59,6 +63,8 @@ export default function Home() {
         {shouldShow(settings?.showMediaSection) && <MediaSection />}
         {shouldShow(settings?.showProjectDiscussionSection) && <ProjectDiscussionSection />}
         {shouldShow(settings?.showContactSection) && <ContactSection />}
+      {shouldShow(settings?.showTestimonialsSection) && <TestimonialsSection />}
+      {shouldShow(settings?.showFaqSection) && <FaqSection />}
         <ConnectWithUs />
       </main>
       {!settingsLoading && <Footer />}

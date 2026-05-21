@@ -114,6 +114,8 @@ export const siteSettingsSchema = z.object({
   showTeamSection: z.boolean().optional().default(true),
   showPricingSection: z.boolean().optional().default(true),
   showProjectDiscussionSection: z.boolean().optional().default(true),
+  showFaqSection: z.boolean().optional().default(true),
+  showTestimonialsSection: z.boolean().optional().default(true),
   // Booking bot toggle
   bookingBotEnabled: z.boolean().optional().default(true),
   // Currency exchange rates (stored as JSON)
@@ -496,3 +498,48 @@ export const insertSolutionItemSchema = solutionItemSchema.omit({ id: true, crea
 
 export type SolutionItem = z.infer<typeof solutionItemSchema>;
 export type InsertSolutionItem = z.infer<typeof insertSolutionItemSchema>;
+
+export const testimonialSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(200),
+  company: z.string().max(200).optional().default(""),
+  role: z.string().max(200).optional().default(""),
+  avatarUrl: z.string().max(2000).optional().default(""),
+  content: z.string().min(1).max(2000),
+  rating: z.number().min(1).max(5).optional().default(5),
+  order: z.number().optional().default(0),
+  enabled: z.boolean().optional().default(true),
+  createdAt: z.string().optional(),
+});
+
+export const insertTestimonialSchema = testimonialSchema.omit({ id: true, createdAt: true });
+
+export type Testimonial = z.infer<typeof testimonialSchema>;
+export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
+
+export const faqSchema = z.object({
+  id: z.string(),
+  question: z.string().min(1).max(500),
+  answer: z.string().min(1).max(5000),
+  order: z.number().optional().default(0),
+  category: z.string().max(100).optional().default("general"),
+  enabled: z.boolean().optional().default(true),
+  createdAt: z.string().optional(),
+});
+
+export const insertFaqSchema = faqSchema.omit({ id: true, createdAt: true });
+
+export type Faq = z.infer<typeof faqSchema>;
+export type InsertFaq = z.infer<typeof insertFaqSchema>;
+
+export const uploadedFileSchema = z.object({
+  id: z.string(),
+  filename: z.string(),
+  originalName: z.string(),
+  mimeType: z.string(),
+  size: z.number(),
+  url: z.string(),
+  uploadedAt: z.string(),
+});
+
+export type UploadedFile = z.infer<typeof uploadedFileSchema>;

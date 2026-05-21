@@ -1,12 +1,15 @@
-import type { Express, Request, Response, NextFunction } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import path from "path";
+import fs from "fs";
 import { storage } from "./storage.js";
-import { insertArticleSchema, insertTeamMemberSchema, insertPricingPackageSchema, insertProjectDiscussionSchema, insertBookingRequestSchema, insertOneTimePricingRequestSchema, insertSocialMediaAnalyticsSchema, insertSocialMediaIntegrationSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordSchema, insertCustomerInquirySchema, SocialMediaIntegration, Article } from "../shared/schema.js";
+import { insertArticleSchema, insertTeamMemberSchema, insertPricingPackageSchema, insertProjectDiscussionSchema, insertBookingRequestSchema, insertOneTimePricingRequestSchema, insertSocialMediaAnalyticsSchema, insertSocialMediaIntegrationSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordSchema, insertCustomerInquirySchema, insertFaqSchema, insertTestimonialSchema, SocialMediaIntegration, Article, UploadedFile, Faq, Testimonial } from "../shared/schema.js";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import bcryptjs from "bcryptjs";
-import { randomBytes } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
+import multer from "multer";
 import { sendContactFormEmail, sendPasswordResetEmail, sendBookingConfirmationEmail, sendOneTimePricingRequestEmail, sendEmail, sendEmailWithAttachment } from "./email-service.js";
 import { generateTwoFactorSecret, verifyTwoFactorToken } from "./two-factor-auth.js";
 import { initiatePayment } from "./payment-service.js";
@@ -1263,15 +1266,6 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
     }
   });
 
-  app.get("/api/bookings", authMiddleware, async (req, res) => {
-    try {
-      const bookings = await storage.getBookingRequests();
-      res.json(bookings);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get booking requests" });
-    }
-  });
-
   app.get("/api/admin/bookings", authMiddleware, async (req, res) => {
     try {
       const bookings = await storage.getBookingRequests();
@@ -1291,18 +1285,6 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       res.json(updated);
     } catch (error) {
       res.status(500).json({ error: "Failed to update booking status" });
-    }
-  });
-
-  app.delete("/api/bookings/:id", authMiddleware, async (req, res) => {
-    try {
-      const deleted = await storage.deleteBookingRequest(req.params.id);
-      if (!deleted) {
-        return res.status(404).json({ error: "Booking not found" });
-      }
-      res.json({ success: true });
-    } catch (error) {
-      res.status(500).json({ error: "Failed to delete booking request" });
     }
   });
 
@@ -3050,6 +3032,184 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
     } catch (error) {
       console.error("AI greeting generation error:", error);
       res.status(500).json({ error: "AI greeting generation failed" });
+    }
+  });
+
+  // ============== TESTIMONIAL ROUTES ==============
+  app.get("/api/testimonials", async (_req, res) => {
+    try {
+      const testimonials = await storage.getTestimonials();
+      res.json(testimonials.filter((t: Testimonial) => t.enabled !== false));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get testimonials" });
+    }
+  });
+
+  app.get("/api/admin/testimonials", authMiddleware, async (_req, res) => {
+    try {
+      const testimonials = await storage.getTestimonials();
+      res.json(testimonials);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get testimonials" });
+    }
+  });
+
+  app.post("/api/admin/testimonials", authMiddleware, async (req, res) => {
+    try {
+      const validated = insertTestimonialSchema.parse(req.body);
+      const t = await storage.createTestimonial(validated);
+      res.status(201).json(t);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      res.status(500).json({ error: "Failed to create testimonial" });
+    }
+  });
+
+  app.put("/api/admin/testimonials/:id", authMiddleware, async (req, res) => {
+    try {
+      const t = await storage.updateTestimonial(req.params.id, req.body);
+      if (!t) return res.status(404).json({ error: "Testimonial not found" });
+      res.json(t);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update testimonial" });
+    }
+  });
+
+  app.delete("/api/admin/testimonials/:id", authMiddleware, async (req, res) => {
+    try {
+      const deleted = await storage.deleteTestimonial(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Testimonial not found" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete testimonial" });
+    }
+  });
+
+  // ============== FAQ ROUTES ==============
+  app.get("/api/faq", async (_req, res) => {
+    try {
+      const faqs: Faq[] = await storage.getFaqs();
+      res.json(faqs.filter((f: Faq) => f.enabled !== false));
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get FAQs" });
+    }
+  });
+
+  app.get("/api/admin/faq", authMiddleware, async (_req, res) => {
+    try {
+      const faqs = await storage.getFaqs();
+      res.json(faqs);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get FAQs" });
+    }
+  });
+
+  app.post("/api/admin/faq", authMiddleware, async (req, res) => {
+    try {
+      const validated = insertFaqSchema.parse(req.body);
+      const faq = await storage.createFaq(validated);
+      res.status(201).json(faq);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      res.status(500).json({ error: "Failed to create FAQ" });
+    }
+  });
+
+  app.put("/api/admin/faq/:id", authMiddleware, async (req, res) => {
+    try {
+      const faq = await storage.updateFaq(req.params.id, req.body);
+      if (!faq) return res.status(404).json({ error: "FAQ not found" });
+      res.json(faq);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to update FAQ" });
+    }
+  });
+
+  app.delete("/api/admin/faq/:id", authMiddleware, async (req, res) => {
+    try {
+      const deleted = await storage.deleteFaq(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "FAQ not found" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete FAQ" });
+    }
+  });
+
+  // ============== FILE UPLOAD ==============
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const fileStorage = multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, uploadsDir),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname);
+      cb(null, `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`);
+    },
+  });
+
+  const upload = multer({
+    storage: fileStorage,
+    limits: { fileSize: 10 * 1024 * 1024 },
+    fileFilter: (_req, file, cb) => {
+      const allowed = /jpeg|jpg|png|gif|webp|svg|mp4|webm|pdf|doc|docx/;
+      const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+      const mime = allowed.test(file.mimetype.split("/")[1]);
+      cb(null, ext || mime);
+    },
+  });
+
+  app.use("/uploads", express.static(uploadsDir));
+
+  app.post("/api/admin/upload", authMiddleware, upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file provided" });
+      }
+      const file: UploadedFile = {
+        id: randomUUID(),
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        mimeType: req.file.mimetype,
+        size: req.file.size,
+        url: `/uploads/${req.file.filename}`,
+        uploadedAt: new Date().toISOString(),
+      };
+      const created = await storage.createUploadedFile(file);
+      res.json(created);
+    } catch (error) {
+      console.error("Upload error:", error);
+      res.status(500).json({ error: "Failed to upload file" });
+    }
+  });
+
+  app.get("/api/admin/uploads", authMiddleware, async (_req, res) => {
+    try {
+      const files = await storage.getUploadedFiles();
+      res.json(files);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get uploads" });
+    }
+  });
+
+  app.delete("/api/admin/uploads/:id", authMiddleware, async (req, res) => {
+    try {
+      const files: UploadedFile[] = await storage.getUploadedFiles();
+      const file = files.find((f: UploadedFile) => f.id === req.params.id);
+      if (!file) {
+        return res.status(404).json({ error: "File not found" });
+      }
+      const filePath = path.join(uploadsDir, file.filename);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      await storage.deleteUploadedFile(req.params.id);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete file" });
     }
   });
 
