@@ -3,12 +3,14 @@
  * Supports OAuth 2.0 authentication
  */
 
+import crypto from 'crypto';
 import { BaseSocialMediaClient } from './base-client.js';
 import { encrypt } from '../crypto-utils.js';
 import { storage } from '../storage.js';
 
 export class TwitterClient extends BaseSocialMediaClient {
     private readonly apiUrl = 'https://api.twitter.com/2';
+    private static pendingVerifiers = new Map<string, string>();
 
     constructor() {
         super('twitter');
@@ -141,15 +143,21 @@ export class TwitterClient extends BaseSocialMediaClient {
      */
     static getAuthUrl(clientId: string, redirectUri: string): string {
         const scopes = ['tweet.read', 'users.read', 'follows.read', 'offline.access'];
+        const state = crypto.randomBytes(16).toString('hex');
+        const codeVerifier = crypto.randomBytes(32).toString('base64url');
+        const codeChallenge = crypto.createHash('sha256').update(codeVerifier).digest('base64url');
+
+        TwitterClient.pendingVerifiers.set(state, codeVerifier);
+        setTimeout(() => TwitterClient.pendingVerifiers.delete(state), 600000);
 
         const params = new URLSearchParams({
             response_type: 'code',
             client_id: clientId,
             redirect_uri: redirectUri,
             scope: scopes.join(' '),
-            state: 'twitter',
-            code_challenge: 'challenge', // PKCE required for Twitter OAuth 2.0
-            code_challenge_method: 'plain',
+            state,
+            code_challenge: codeChallenge,
+            code_challenge_method: 'S256',
         });
 
         return `https://twitter.com/i/oauth2/authorize?${params.toString()}`;
@@ -162,8 +170,15 @@ export class TwitterClient extends BaseSocialMediaClient {
         code: string,
         clientId: string,
         clientSecret: string,
-        redirectUri: string
+        redirectUri: string,
+        state: string
     ): Promise<{ accessToken: string; refreshToken: string }> {
+        const codeVerifier = TwitterClient.pendingVerifiers.get(state);
+        if (!codeVerifier) {
+            throw new Error('OAuth session expired or invalid state parameter');
+        }
+        TwitterClient.pendingVerifiers.delete(state);
+
         const { default: axios } = await import('axios');
         const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
 
@@ -173,7 +188,7 @@ export class TwitterClient extends BaseSocialMediaClient {
                 grant_type: 'authorization_code',
                 code,
                 redirect_uri: redirectUri,
-                code_verifier: 'challenge', // Must match code_challenge
+                code_verifier: codeVerifier,
             }),
             {
                 headers: {

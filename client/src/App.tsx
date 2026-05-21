@@ -4,6 +4,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 import { WelcomePopup } from "@/components/welcome-popup";
 import Home from "@/pages/home";
 import AdminLoginQR from "@/pages/admin-login-qr";
@@ -11,6 +12,8 @@ import AdminDashboard from "@/pages/admin-dashboard";
 import EmailLogin from "@/pages/email-login";
 import EmailInbox from "@/pages/email-inbox";
 import NotFound from "@/pages/not-found";
+
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
 
 function Router() {
   return (
@@ -42,7 +45,7 @@ function Router() {
 }
 
 function App() {
-  return (
+  const content = (
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <TooltipProvider>
@@ -53,6 +56,12 @@ function App() {
       </ThemeProvider>
     </QueryClientProvider>
   );
+
+  if (googleClientId) {
+    return <GoogleOAuthProvider clientId={googleClientId}>{content}</GoogleOAuthProvider>;
+  }
+
+  return content;
 }
 
 export default App;

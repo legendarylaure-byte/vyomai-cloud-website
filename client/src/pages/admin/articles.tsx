@@ -201,8 +201,8 @@ export function ArticlesPage() {
       });
       form.setValue("content", data.text);
       toast({ title: "Content generated ✨", description: "AI-generated content has been added" });
-    } catch {
-      toast({ title: "Generation failed", description: "Please try again", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Generation failed", description: err?.message || "Please try again", variant: "destructive" });
     } finally {
       setIsGeneratingContent(false);
     }
@@ -226,8 +226,8 @@ export function ArticlesPage() {
       });
       form.setValue("summary", data.text);
       toast({ title: "Summary generated ✨", description: "AI summary has been added" });
-    } catch {
-      toast({ title: "Generation failed", description: "Please try again", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Generation failed", description: err?.message || "Please try again", variant: "destructive" });
     } finally {
       setIsGeneratingSummary(false);
     }
@@ -249,8 +249,8 @@ export function ArticlesPage() {
       });
       form.setValue("tags", data.text);
       toast({ title: "Tags generated ✨", description: "AI tags have been added" });
-    } catch {
-      toast({ title: "Generation failed", description: "Please try again", variant: "destructive" });
+    } catch (err: any) {
+      toast({ title: "Generation failed", description: err?.message || "Please try again", variant: "destructive" });
     } finally {
       setIsGeneratingTags(false);
     }

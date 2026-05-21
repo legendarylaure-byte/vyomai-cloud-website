@@ -29,35 +29,16 @@ export async function validateEmailCredentials(
   password: string
 ): Promise<boolean> {
   try {
-    // Connect to Hostinger IMAP using node-imap equivalent
-    // For development, we'll simulate a successful login
-    // In production, you would use: npm install imap mailparser
-    // and implement proper IMAP connection
-
-    // Validation check: ensure email is from vyomai.cloud
     if (!email.endsWith("@vyomai.cloud")) {
       return false;
     }
 
-    // In production, attempt IMAP connection:
-    // const Imap = require("imap");
-    // const imap = new Imap({
-    //   user: email,
-    //   password: password,
-    //   host: "mail.vyomai.cloud",
-    //   port: 993,
-    //   tls: true,
-    //   tlsOptions: { rejectUnauthorized: false },
-    // });
-    //
-    // await new Promise((resolve, reject) => {
-    //   imap.openBox("INBOX", false, (err) => {
-    //     if (err) reject(err);
-    //     else resolve(true);
-    //     imap.closeBox(false, () => imap.end());
-    //   });
-    // });
+    if (process.env.NODE_ENV === "production") {
+      console.error("❌ Email credential validation: IMAP module not installed. Install 'imap' package to enable.");
+      return false;
+    }
 
+    console.warn("⚠️ Email credential validation is a stub in development mode");
     return true;
   } catch (error) {
     console.error("Email validation failed:", error);

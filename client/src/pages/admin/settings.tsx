@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type SiteSettings } from "@shared/schema";
 import { 
-  Save, Loader2, Settings, PenLine, Globe, Shield, Lock, Server
+  Save, Loader2, Settings, PenLine, Globe, Shield, Lock, Server, Smartphone, Mail, QrCode
 } from "lucide-react";
 import {
   Dialog,
@@ -22,6 +22,15 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { QRAuthModal } from "@/components/qr-auth-modal";
+import { Separator } from "@/components/ui/separator";
 
 export function SettingsPage() {
   const { toast } = useToast();
@@ -81,6 +90,22 @@ export function SettingsPage() {
     user: "",
     password: "",
     secure: false
+  });
+
+  const [twoFactorMethod, setTwoFactorMethod] = useState<string>("none");
+  const [showQrSetup, setShowQrSetup] = useState(false);
+
+  const update2FAMutation = useMutation({
+    mutationFn: async (method: string) => {
+      const token = localStorage.getItem("vyomai-admin-token");
+      return apiRequest("PUT", "/api/admin/user/2fa-settings", { twoFactorMethod: method }, { Authorization: `Bearer ${token}` });
+    },
+    onSuccess: () => {
+      toast({ title: "2FA settings updated successfully" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update 2FA settings", variant: "destructive" });
+    },
   });
 
   const emailConfigMutation = useMutation({
@@ -337,6 +362,87 @@ export function SettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Security & 2FA Settings */}
+      <Card className="border-gray-200 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
+            <Shield className="w-5 h-5 text-purple-600" />
+            Security & Two-Factor Authentication
+          </CardTitle>
+          <CardDescription className="text-gray-500">
+            Configure your 2FA preferences for login
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-base">2FA Method</Label>
+              <p className="text-sm text-muted-foreground">
+                Choose how to secure your admin login
+              </p>
+            </div>
+            <Select
+              value={twoFactorMethod}
+              onValueChange={(val) => {
+                setTwoFactorMethod(val);
+                update2FAMutation.mutate(val);
+              }}
+            >
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Select method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">
+                  <span className="flex items-center gap-2">None (Password only)</span>
+                </SelectItem>
+                <SelectItem value="email">
+                  <span className="flex items-center gap-2"><Mail className="w-4 h-4" /> Email OTP</span>
+                </SelectItem>
+                <SelectItem value="totp">
+                  <span className="flex items-center gap-2"><Smartphone className="w-4 h-4" /> Authenticator App</span>
+                </SelectItem>
+                <SelectItem value="both">
+                  <span className="flex items-center gap-2"><Shield className="w-4 h-4" /> Email or App (choose)</span>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-1">
+              <Label className="text-base">Authenticator App</Label>
+              <p className="text-sm text-muted-foreground">
+                Set up TOTP with Google Authenticator or similar
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              onClick={() => setShowQrSetup(true)}
+              disabled={twoFactorMethod === "none"}
+            >
+              <QrCode className="w-4 h-4 mr-2" />
+              Setup QR Code
+            </Button>
+          </div>
+
+          {update2FAMutation.isPending && (
+            <p className="text-sm text-muted-foreground flex items-center gap-2">
+              <Loader2 className="w-3 h-3 animate-spin" /> Saving...
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      <QRAuthModal
+        open={showQrSetup}
+        onClose={() => setShowQrSetup(false)}
+        onAuthenticate={() => {
+          setTwoFactorMethod("totp");
+          update2FAMutation.mutate("totp");
+        }}
+      />
     </div>
   );
 }

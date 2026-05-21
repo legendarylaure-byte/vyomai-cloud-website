@@ -3,14 +3,14 @@ import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage.js";
-import { insertArticleSchema, insertTeamMemberSchema, insertPricingPackageSchema, insertProjectDiscussionSchema, insertBookingRequestSchema, insertOneTimePricingRequestSchema, insertSocialMediaAnalyticsSchema, insertSocialMediaIntegrationSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordSchema, insertCustomerInquirySchema, insertFaqSchema, insertTestimonialSchema, SocialMediaIntegration, Article, UploadedFile, Faq, Testimonial } from "../shared/schema.js";
+import { insertArticleSchema, insertTeamMemberSchema, insertPricingPackageSchema, insertProjectDiscussionSchema, insertBookingRequestSchema, insertOneTimePricingRequestSchema, insertSocialMediaAnalyticsSchema, insertSocialMediaIntegrationSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordSchema, insertCustomerInquirySchema, insertFaqSchema, insertTestimonialSchema, SocialMediaIntegration, Article, UploadedFile, Faq, Testimonial, verify2faSchema, googleAuthSchema, twoFactorSettingsSchema } from "../shared/schema.js";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import bcryptjs from "bcryptjs";
 import { randomBytes, randomUUID } from "crypto";
 import multer from "multer";
-import { sendContactFormEmail, sendPasswordResetEmail, sendBookingConfirmationEmail, sendOneTimePricingRequestEmail, sendEmail, sendEmailWithAttachment } from "./email-service.js";
+import { sendContactFormEmail, sendPasswordResetEmail, sendBookingConfirmationEmail, sendOneTimePricingRequestEmail, sendEmail, sendEmailWithAttachment, sendOTPEmail } from "./email-service.js";
 import { generateTwoFactorSecret, verifyTwoFactorToken } from "./two-factor-auth.js";
 import { initiatePayment } from "./payment-service.js";
 import { validateEmailCredentials, fetchEmails, createEmailSession, validateEmailSession, endEmailSession } from "./email-client.js";
@@ -410,8 +410,8 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
     twoFactorToken: z.string().optional(),
   });
 
-  // Diagnostic endpoint to check admin user state (no auth required)
-  app.get("/api/admin/diagnostics", async (_req, res) => {
+  // Diagnostic endpoint to check admin user state (auth required)
+  app.get("/api/admin/diagnostics", authMiddleware, async (_req, res) => {
     try {
       const adminUsername = process.env.ADMIN_USERNAME || "not set";
       const adminEmail = process.env.ADMIN_EMAIL || "not set";
@@ -444,11 +444,10 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       if (!parsed.success) {
         return res.status(400).json({ error: "Invalid request body" });
       }
-      const { username, password, twoFactorToken } = parsed.data;
+      const { username, password } = parsed.data;
 
       let user = await storage.getUserByUsername(username);
 
-      // Fallback: try finding by email if username lookup fails
       if (!user && username.includes("@")) {
         user = await storage.getUserByEmail(username);
       }
@@ -458,7 +457,6 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // Compare hashed password
       const isPasswordValid = await bcryptjs.compare(password, user.password);
 
       if (!isPasswordValid) {
@@ -466,18 +464,29 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      // Check if 2FA is enabled
-      if (user.twoFactorEnabled && user.twoFactorSecret) {
-        if (!twoFactorToken) {
-          console.warn(`Login blocked: 2FA required for "${username}"`);
-          return res.status(403).json({ error: "2FA required", requires2FA: true });
+      const method = user.twoFactorMethod || (user.twoFactorEnabled ? "totp" : "none");
+
+      if (method !== "none") {
+        const sessionId = randomUUID();
+        const sessionData: any = { userId: user.id, method };
+
+        if (method === "email" || method === "both") {
+          const otp = Math.floor(100000 + Math.random() * 900000).toString();
+          sessionData.otp = otp;
+          await sendOTPEmail(user.email || user.username, otp).catch(e =>
+            console.error("Failed to send OTP email:", e)
+          );
         }
 
-        // Verify 2FA token
-        if (!verifyTwoFactorToken(user.twoFactorSecret, twoFactorToken)) {
-          console.warn(`Login failed: invalid 2FA token for "${username}"`);
-          return res.status(401).json({ error: "Invalid 2FA token" });
-        }
+        await storage.storeLoginSession(sessionId, sessionData);
+
+        console.warn(`Login blocked: 2FA required for "${username}" (method: ${method})`);
+        return res.status(403).json({
+          error: "2FA required",
+          requires2FA: true,
+          method,
+          sessionId,
+        });
       }
 
       const token = jwt.sign({ username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '24h' });
@@ -487,6 +496,161 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.post("/api/admin/verify-2fa", async (req, res) => {
+    try {
+      const parsed = verify2faSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body" });
+      }
+
+      const { method, code, sessionId } = parsed.data;
+      const session = await storage.getLoginSession(sessionId);
+
+      if (!session) {
+        return res.status(401).json({ error: "Session expired or invalid" });
+      }
+
+      await storage.deleteLoginSession(sessionId);
+
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(401).json({ error: "User not found" });
+      }
+
+      if (method === "email") {
+        if (code !== session.otp) {
+          console.warn(`Email OTP verification failed for "${user.username}"`);
+          return res.status(401).json({ error: "Invalid OTP code" });
+        }
+      } else if (method === "totp") {
+        if (!verifyTwoFactorToken(user.twoFactorSecret || "", code)) {
+          console.warn(`TOTP verification failed for "${user.username}"`);
+          return res.status(401).json({ error: "Invalid 2FA token" });
+        }
+      } else {
+        return res.status(400).json({ error: "Invalid 2FA method" });
+      }
+
+      const token = jwt.sign({ username: user.username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '24h' });
+      console.log(`✅ 2FA success: "${user.username}" (method: ${method})`);
+
+      res.json({ success: true, token });
+    } catch (error) {
+      console.error("2FA verification error:", error);
+      res.status(500).json({ error: "2FA verification failed" });
+    }
+  });
+
+  // Google sign-in
+  app.post("/api/admin/auth/google", async (req, res) => {
+    try {
+      const parsed = googleAuthSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body" });
+      }
+
+      const { credential } = parsed.data;
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        return res.status(500).json({ error: "Google login not configured (GOOGLE_CLIENT_ID missing)" });
+      }
+
+      const { OAuth2Client } = await import('google-auth-library');
+      const client = new OAuth2Client(clientId);
+      const ticket = await client.verifyIdToken({
+        idToken: credential,
+        audience: clientId,
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload || !payload.email) {
+        return res.status(401).json({ error: "Invalid Google token" });
+      }
+
+      const googleEmail = payload.email;
+      const googleSub = payload.sub;
+
+      let user = await storage.getUserByEmail(googleEmail);
+
+      if (user) {
+        if (!user.googleId) {
+          await storage.updateUser(user.id, { googleId: googleSub } as any);
+        }
+      } else {
+        const hashedPassword = await bcryptjs.hash(randomBytes(32).toString('hex'), 10);
+        user = await storage.createUser({
+          username: googleEmail.split('@')[0],
+          password: hashedPassword,
+          email: googleEmail,
+          role: "admin",
+          googleId: googleSub,
+        } as any);
+      }
+
+      const token = jwt.sign({ username: user.username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '24h' });
+      console.log(`✅ Google login success: "${user.username}" (email: ${googleEmail})`);
+
+      res.json({ success: true, token });
+    } catch (error) {
+      console.error("Google auth error:", error);
+      res.status(500).json({ error: "Google authentication failed" });
+    }
+  });
+
+  // Update 2FA method (admin only)
+  app.put("/api/admin/user/2fa-settings", authMiddleware, async (req, res) => {
+    try {
+      const parsed = twoFactorSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid request body" });
+      }
+
+      const currentUser = (req as any).user;
+      const user = await storage.getUserByUsername(currentUser.username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      await storage.updateUser(user.id, { twoFactorMethod: parsed.data.twoFactorMethod } as any);
+      res.json({ success: true, message: "2FA settings updated" });
+    } catch (error) {
+      console.error("2FA settings update error:", error);
+      res.status(500).json({ error: "Failed to update 2FA settings" });
+    }
+  });
+
+  // Resend OTP for login
+  app.post("/api/admin/resend-otp", async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      if (!sessionId) {
+        return res.status(400).json({ error: "Session ID required" });
+      }
+
+      const session = await storage.getLoginSession(sessionId);
+      if (!session) {
+        return res.status(401).json({ error: "Session expired" });
+      }
+
+      const user = await storage.getUser(session.userId);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      session.otp = otp;
+      await storage.storeLoginSession(sessionId, session);
+      await sendOTPEmail(user.email || user.username, otp).catch(e =>
+        console.error("Failed to resend OTP email:", e)
+      );
+
+      res.json({ success: true, message: "OTP resent" });
+    } catch (error) {
+      console.error("Resend OTP error:", error);
+      res.status(500).json({ error: "Failed to resend OTP" });
     }
   });
 
@@ -2915,7 +3079,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
   app.get("/api/admin/social-media/oauth/callback/:platform", async (req, res) => {
     try {
       const { platform } = req.params;
-      const { code, error: oauthError } = req.query;
+      const { code, error: oauthError, state } = req.query;
 
       if (oauthError) {
         return res.redirect('/admin/social-media-integration?error=' + encodeURIComponent(oauthError as string));
@@ -2947,7 +3111,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
           tokens = await LinkedInClient.exchangeCodeForTokens(code as string, config.clientId, clientSecret, redirectUri);
           break;
         case 'twitter':
-          tokens = await TwitterClient.exchangeCodeForTokens(code as string, config.clientId, clientSecret, redirectUri);
+          tokens = await TwitterClient.exchangeCodeForTokens(code as string, config.clientId, clientSecret, redirectUri, state as string);
           break;
         default:
           return res.status(400).send("Unsupported platform");

@@ -30,6 +30,7 @@ function col(name: string) {
 
 export class FirebaseStorage {
   private resetCodes = new Map<string, { code: string; expiresAt: number }>();
+  private loginSessions = new Map<string, { userId: string; method: string; otp?: string; expiresAt: number }>();
   private initPromise: Promise<void>;
 
   constructor() {
@@ -354,6 +355,24 @@ export class FirebaseStorage {
   }
   async clearResetCode(email: string) {
     this.resetCodes.delete(email);
+  }
+
+  async storeLoginSession(sessionId: string, session: { userId: string; method: string; otp?: string }) {
+    this.loginSessions.set(sessionId, { ...session, expiresAt: Date.now() + 10 * 60 * 1000 });
+    setTimeout(() => this.loginSessions.delete(sessionId), 10 * 60 * 1000);
+  }
+
+  async getLoginSession(sessionId: string) {
+    const stored = this.loginSessions.get(sessionId);
+    if (!stored || Date.now() > stored.expiresAt) {
+      this.loginSessions.delete(sessionId);
+      return undefined;
+    }
+    return { userId: stored.userId, method: stored.method, otp: stored.otp };
+  }
+
+  async deleteLoginSession(sessionId: string) {
+    this.loginSessions.delete(sessionId);
   }
 
   // ---- Articles ----

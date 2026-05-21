@@ -5,12 +5,15 @@ server/public
 vite.config.ts.*
 *.tar.gz
 .env
-.vercel
+.env.*
 .env*.local
+.vercel
 .local/
 keys/
 Keys/
+*.pem
+*.key
 QA_REPORT.md
 Website_VyomAi-main.zip
-.env.vercel
 uploads/
+VERCEL_DEPLOYMENT.md

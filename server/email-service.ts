@@ -83,21 +83,26 @@ async function getEmailConfig(): Promise<EmailConfig> {
       fromName: settings.emailFromName || "VyomAi",
       fromAddress: settings.emailFromAddress || "info@vyomai.cloud",
       replyTo: settings.emailReplyTo,
-      smtpHost: settings.smtpHost,
-      smtpPort: settings.smtpPort || "587",
-      smtpUser: settings.smtpUser,
-      smtpPassword: settings.smtpPassword,
-      smtpSecure: settings.smtpSecure || false,
+      smtpHost: settings.smtpHost || process.env.SMTP_HOST,
+      smtpPort: settings.smtpPort || process.env.SMTP_PORT || "587",
+      smtpUser: settings.smtpUser || process.env.SMTP_USER,
+      smtpPassword: settings.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || process.env.SMTP_PASSWORD,
+      smtpSecure: settings.smtpSecure !== undefined ? settings.smtpSecure : process.env.SMTP_SECURE === "true",
       sendgridFromEmail: settings.sendgridFromEmail,
       providerPriority: providerPriority.length > 0 ? providerPriority : ["smtp", "gmail", "sendgrid"],
     };
     configLastFetched = now;
     return cachedConfig;
   } catch (error) {
+    const resendKey = process.env.RESEND_API_KEY;
     return {
       provider: "smtp",
       fromName: "VyomAi",
       fromAddress: "info@vyomai.cloud",
+      smtpHost: process.env.SMTP_HOST || (resendKey ? "smtp.resend.com" : undefined),
+      smtpPort: process.env.SMTP_PORT || "587",
+      smtpUser: process.env.SMTP_USER || (resendKey ? "resend" : undefined),
+      smtpPassword: process.env.EMAIL_SMTP_PASSWORD || process.env.SMTP_PASSWORD || resendKey,
       providerPriority: ["smtp", "gmail", "sendgrid"],
     };
   }
@@ -257,6 +262,27 @@ export async function sendPasswordResetEmail(
   await sendEmail({
     to: recipientEmail,
     subject: "Password Reset Verification Code - VyomAi",
+    html,
+  });
+}
+
+export async function sendOTPEmail(recipientEmail: string, otp: string): Promise<void> {
+  const html = buildEmailWrapper(`
+<h2>✦ Login Verification Code</h2>
+<p>Use the code below to complete your login to <strong>VyomAi</strong> admin panel:</p>
+<div style="text-align:center;margin:28px 0">
+<div style="display:inline-block;background:#f0f0ff;border:2px dashed #8B5CF6;border-radius:12px;padding:16px 32px">
+<span style="font-size:32px;font-weight:700;color:#8B5CF6;letter-spacing:8px;font-family:monospace">${otp}</span>
+</div>
+</div>
+<p>This code expires in <strong>10 minutes</strong>. Do not share this code with anyone.</p>
+<p style="margin-top:16px;font-size:13px;color:#64748b">If you didn't attempt to login, you can safely ignore this email.</p>
+<p style="margin-top:20px">— The VyomAi Team</p>
+`, { type: "user" });
+
+  await sendEmail({
+    to: recipientEmail,
+    subject: "Login Verification Code - VyomAi",
     html,
   });
 }

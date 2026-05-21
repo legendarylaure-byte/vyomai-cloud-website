@@ -1,5 +1,6 @@
 import speakeasy from "speakeasy";
 import QRCode from "qrcode";
+import { randomBytes } from "crypto";
 
 export interface TwoFactorSetup {
   secret: string;
@@ -45,7 +46,8 @@ export function verifyTwoFactorToken(secret: string, token: string): boolean {
 export function generateBackupCodes(count: number = 10): string[] {
   const codes: string[] = [];
   for (let i = 0; i < count; i++) {
-    codes.push(Math.random().toString(36).substring(2, 10).toUpperCase());
+    const bytes = randomBytes(6);
+    codes.push(bytes.toString('base64url').toUpperCase().slice(0, 10));
   }
   return codes;
 }

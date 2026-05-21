@@ -20,11 +20,7 @@ function getEncryptionKey(): string {
     const key = process.env.SOCIAL_MEDIA_ENCRYPTION_KEY;
 
     if (!key) {
-        if (process.env.NODE_ENV === 'production') {
-            throw new Error('SOCIAL_MEDIA_ENCRYPTION_KEY must be set in production');
-        }
-        console.warn('⚠️ Using default encryption key for development. Set SOCIAL_MEDIA_ENCRYPTION_KEY in production!');
-        return 'dev_encryption_key_change_in_production_32chars!!';
+        throw new Error('SOCIAL_MEDIA_ENCRYPTION_KEY environment variable is required');
     }
 
     return key;

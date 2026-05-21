@@ -14,6 +14,9 @@ export interface IStorage {
   verifyResetCode(email: string, code: string): Promise<boolean>;
   resetPasswordByEmail(email: string, hashedPassword: string): Promise<boolean>;
   clearResetCode(email: string): Promise<void>;
+  storeLoginSession(sessionId: string, session: { userId: string; method: string; otp?: string }): Promise<void>;
+  getLoginSession(sessionId: string): Promise<{ userId: string; method: string; otp?: string } | undefined>;
+  deleteLoginSession(sessionId: string): Promise<void>;
 
   getArticles(): Promise<Article[]>;
   getArticle(id: string): Promise<Article | undefined>;
@@ -148,6 +151,7 @@ export class MemStorage implements IStorage {
   private visitorStats: VisitorStats;
   private todayDate: string;
   private resetCodes: Map<string, { code: string; expiresAt: number }>;
+  private loginSessions: Map<string, { userId: string; method: string; otp?: string; expiresAt: number }>;
   private heroContent: HeroContent | null;
   private aboutContent: AboutContent | null;
   private aboutValues: Map<string, AboutValue>;
@@ -172,6 +176,7 @@ export class MemStorage implements IStorage {
     this.socialMediaIntegrations = new Map();
     this.oneTimePricingRequests = new Map();
     this.resetCodes = new Map();
+    this.loginSessions = new Map();
     this.todayDate = new Date().toDateString();
     
     // Initialize home page content
@@ -529,6 +534,26 @@ export class MemStorage implements IStorage {
 
   async clearResetCode(email: string): Promise<void> {
     this.resetCodes.delete(email);
+  }
+
+  async storeLoginSession(sessionId: string, session: { userId: string; method: string; otp?: string }): Promise<void> {
+    const expiresAt = Date.now() + (10 * 60 * 1000);
+    this.loginSessions.set(sessionId, { ...session, expiresAt });
+    setTimeout(() => { this.loginSessions.delete(sessionId); }, 10 * 60 * 1000);
+  }
+
+  async getLoginSession(sessionId: string): Promise<{ userId: string; method: string; otp?: string } | undefined> {
+    const stored = this.loginSessions.get(sessionId);
+    if (!stored) return undefined;
+    if (Date.now() > stored.expiresAt) {
+      this.loginSessions.delete(sessionId);
+      return undefined;
+    }
+    return { userId: stored.userId, method: stored.method, otp: stored.otp };
+  }
+
+  async deleteLoginSession(sessionId: string): Promise<void> {
+    this.loginSessions.delete(sessionId);
   }
 
   async getArticles(): Promise<Article[]> {

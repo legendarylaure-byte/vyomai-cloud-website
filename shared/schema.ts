@@ -7,6 +7,8 @@ export const users = {
   email: "",
   twoFactorSecret: "",
   twoFactorEnabled: false,
+  twoFactorMethod: "none" as "none" | "email" | "totp" | "both",
+  googleId: "",
 };
 
 export const insertUserSchema = z.object({
@@ -17,6 +19,8 @@ export const insertUserSchema = z.object({
   permissions: z.string().max(1000).optional(),
   twoFactorSecret: z.string().max(500).optional(),
   twoFactorEnabled: z.boolean().optional().default(false),
+  twoFactorMethod: z.enum(["none", "email", "totp", "both"]).optional().default("none"),
+  googleId: z.string().max(500).optional(),
 });
 
 export const resetPasswordRequestSchema = z.object({
@@ -42,7 +46,7 @@ export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
 export type VerifyResetCode = z.infer<typeof verifyResetCodeSchema>;
 export type ResetPassword = z.infer<typeof resetPasswordSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = { id: string; username: string; password: string; email?: string; role?: string; permissions?: string; twoFactorSecret?: string; twoFactorEnabled?: boolean; createdAt?: Date | string };
+export type User = { id: string; username: string; password: string; email?: string; role?: string; permissions?: string; twoFactorSecret?: string; twoFactorEnabled?: boolean; twoFactorMethod?: "none" | "email" | "totp" | "both"; googleId?: string; createdAt?: Date | string };
 
 export const articleSchema = z.object({
   id: z.string(),
@@ -543,3 +547,23 @@ export const uploadedFileSchema = z.object({
 });
 
 export type UploadedFile = z.infer<typeof uploadedFileSchema>;
+
+export const verify2faSchema = z.object({
+  method: z.enum(["email", "totp"]),
+  code: z.string().min(1).max(10),
+  sessionId: z.string().min(1),
+});
+
+export type Verify2FA = z.infer<typeof verify2faSchema>;
+
+export const googleAuthSchema = z.object({
+  credential: z.string().min(1),
+});
+
+export type GoogleAuth = z.infer<typeof googleAuthSchema>;
+
+export const twoFactorSettingsSchema = z.object({
+  twoFactorMethod: z.enum(["none", "email", "totp", "both"]),
+});
+
+export type TwoFactorSettings = z.infer<typeof twoFactorSettingsSchema>;
