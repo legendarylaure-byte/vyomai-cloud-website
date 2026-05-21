@@ -63,25 +63,6 @@ export function ArticlesPage() {
   const [isAiSearch, setIsAiSearch] = useState(false);
   const [aiSearchResults, setAiSearchResults] = useState<Set<string> | null>(null);
   const [isSearchingAi, setIsSearchingAi] = useState(false);
-  const [showMediaSection, setShowMediaSection] = useState(true);
-
-  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
-  useEffect(() => {
-    if (settings?.showMediaSection !== undefined) setShowMediaSection(settings.showMediaSection);
-  }, [settings]);
-
-  const sectionToggleMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const token = localStorage.getItem("vyomai-admin-token");
-      return apiRequest("PUT", "/api/admin/settings", data, { Authorization: `Bearer ${token}` });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-    },
-    onError: () => {
-      toast({ title: "Failed to update section visibility", variant: "destructive" });
-    },
-  });
 
   const { data: articles = [], isLoading } = useQuery<Article[]>({
     queryKey: ["/api/admin/articles"],
@@ -1096,33 +1077,6 @@ export function ArticlesPage() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Section Visibility */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-purple-600" />
-              <div>
-                <p className="font-medium text-sm">Media Section on Homepage</p>
-                <p className="text-xs text-muted-foreground">Show/hide the articles & media section on the public home page</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={showMediaSection}
-                onCheckedChange={(v) => {
-                  setShowMediaSection(v);
-                  sectionToggleMutation.mutate({ showMediaSection: v });
-                }}
-              />
-              <span className={`text-xs font-medium w-14 text-right ${showMediaSection ? "text-green-600" : "text-gray-400"}`}>
-                {showMediaSection ? "Visible" : "Hidden"}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Search & Filters */}
       <Card className="animate-in fade-in slide-in-from-bottom-4 duration-700 delay-300">

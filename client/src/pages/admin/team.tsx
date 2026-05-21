@@ -32,26 +32,6 @@ export function TeamPage() {
   const [checkedMembers, setCheckedMembers] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isGeneratingBio, setIsGeneratingBio] = useState(false);
-  const [showTeamSection, setShowTeamSection] = useState(true);
-
-  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
-  useEffect(() => {
-    if (settings?.showTeamSection !== undefined) setShowTeamSection(settings.showTeamSection);
-  }, [settings]);
-
-  const sectionToggleMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const token = localStorage.getItem("vyomai-admin-token");
-      return apiRequest("PUT", "/api/admin/settings", data, { Authorization: `Bearer ${token}` });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({ title: "Section visibility updated" });
-    },
-    onError: () => {
-      toast({ title: "Failed to update section visibility", variant: "destructive" });
-    },
-  });
 
   const { data: teamMembers = [] } = useQuery<TeamMember[]>({
     queryKey: ["/api/team"],
@@ -360,33 +340,6 @@ export function TeamPage() {
           </DialogContent>
         </Dialog>
       </div>
-
-      {/* Section Visibility */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Eye className="w-4 h-4 text-purple-600" />
-              <div>
-                <p className="font-medium text-sm">Team Section on Homepage</p>
-                <p className="text-xs text-muted-foreground">Show/hide the team section on the public home page</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Switch
-                checked={showTeamSection}
-                onCheckedChange={(v) => {
-                  setShowTeamSection(v);
-                  sectionToggleMutation.mutate({ showTeamSection: v });
-                }}
-              />
-              <span className={`text-xs font-medium w-14 text-right ${showTeamSection ? "text-green-600" : "text-gray-400"}`}>
-                {showTeamSection ? "Visible" : "Hidden"}
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       <div className="space-y-4">
         <h2 className="text-lg font-semibold">Team Members Checklist</h2>

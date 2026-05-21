@@ -58,27 +58,7 @@ export function PricingPage() {
   const [aiVerification, setAiVerification] = useState<{verified: boolean; message: string} | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
-  const [showPricingSection, setShowPricingSection] = useState(true);
   const [activeTab, setActiveTab] = useState("plans");
-
-  const { data: settings } = useQuery<any>({ queryKey: ["/api/settings"] });
-  useEffect(() => {
-    if (settings?.showPricingSection !== undefined) setShowPricingSection(settings.showPricingSection);
-  }, [settings]);
-
-  const sectionToggleMutation = useMutation({
-    mutationFn: async (data: any) => {
-      const token = localStorage.getItem("vyomai-admin-token");
-      return apiRequest("PUT", "/api/admin/settings", data, { Authorization: `Bearer ${token}` });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
-      toast({ title: "Section visibility updated" });
-    },
-    onError: () => {
-      toast({ title: "Failed to update section visibility", variant: "destructive" });
-    },
-  });
 
   const { data: pricingPackages = [] } = useQuery<PricingPackage[]>({
     queryKey: ["/api/pricing"],
@@ -596,33 +576,6 @@ export function PricingPage() {
         </TabsList>
 
         <TabsContent value="plans" className="space-y-6">
-          {/* Section Visibility */}
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Eye className="w-4 h-4 text-purple-600" />
-                  <div>
-                    <p className="font-medium text-sm">Pricing Section on Homepage</p>
-                    <p className="text-xs text-muted-foreground">Show/hide the pricing section on the public home page</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch
-                    checked={showPricingSection}
-                    onCheckedChange={(v) => {
-                      setShowPricingSection(v);
-                      sectionToggleMutation.mutate({ showPricingSection: v });
-                    }}
-                  />
-                  <span className={`text-xs font-medium w-14 text-right ${showPricingSection ? "text-green-600" : "text-gray-400"}`}>
-                    {showPricingSection ? "Visible" : "Hidden"}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
           {pricingPackages.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {pricingPackages.map((pkg) => (
