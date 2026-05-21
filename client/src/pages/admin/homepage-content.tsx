@@ -111,6 +111,9 @@ export function HomepageContentPage() {
   const [showContact, setShowContact] = useState(true);
   const [showFaq, setShowFaq] = useState(true);
   const [showTestimonials, setShowTestimonials] = useState(true);
+  const [showMedia, setShowMedia] = useState(true);
+  const [showTeam, setShowTeam] = useState(true);
+  const [showPricing, setShowPricing] = useState(true);
 
   useEffect(() => {
     if (settings) {
@@ -122,6 +125,9 @@ export function HomepageContentPage() {
       setShowContact(settings.showContactSection ?? true);
       setShowFaq(settings.showFaqSection ?? true);
       setShowTestimonials(settings.showTestimonialsSection ?? true);
+      setShowMedia(settings.showMediaSection ?? true);
+      setShowTeam(settings.showTeamSection ?? true);
+      setShowPricing(settings.showPricingSection ?? true);
     }
   }, [settings]);
 
@@ -196,6 +202,18 @@ export function HomepageContentPage() {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label className="text-sm">FAQ Section</Label>
               <Switch checked={showFaq} onCheckedChange={(v) => { setShowFaq(v); toggleSection("showFaqSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Media Section</Label>
+              <Switch checked={showMedia} onCheckedChange={(v) => { setShowMedia(v); toggleSection("showMediaSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Team Section</Label>
+              <Switch checked={showTeam} onCheckedChange={(v) => { setShowTeam(v); toggleSection("showTeamSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Pricing Section</Label>
+              <Switch checked={showPricing} onCheckedChange={(v) => { setShowPricing(v); toggleSection("showPricingSection", v); }} />
             </div>
           </div>
         </CardContent>
@@ -277,15 +295,15 @@ function HeroSection() {
     },
   });
 
-  if (isLoading) {
-    return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  }
-
   useEffect(() => {
     if (heroContent && !form.formState.isDirty) {
       form.reset(heroContent);
     }
-  }, [heroContent]);
+  }, [heroContent, form]);
+
+  if (isLoading) {
+    return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  }
 
   return (
     <Card>
@@ -549,12 +567,14 @@ function AboutSection() {
     },
   });
 
+  useEffect(() => {
+    if (aboutData?.content && !contentForm.formState.isDirty) {
+      contentForm.reset(aboutData.content);
+    }
+  }, [aboutData, contentForm]);
+
   if (isLoading) {
     return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  }
-
-  if (aboutData?.content && !contentForm.formState.isDirty) {
-    contentForm.reset(aboutData.content);
   }
 
   const openEditDialog = (value: any) => {
@@ -911,12 +931,14 @@ function ServicesSection() {
     },
   });
 
+  useEffect(() => {
+    if (servicesData?.content && !contentForm.formState.isDirty) {
+      contentForm.reset(servicesData.content);
+    }
+  }, [servicesData, contentForm]);
+
   if (isLoading) {
     return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  }
-
-  if (servicesData?.content && !contentForm.formState.isDirty) {
-    contentForm.reset(servicesData.content);
   }
 
   const openEditDialog = (item: any) => {
@@ -1280,12 +1302,14 @@ function SolutionsSection() {
     },
   });
 
+  useEffect(() => {
+    if (solutionsData?.content && !contentForm.formState.isDirty) {
+      contentForm.reset(solutionsData.content);
+    }
+  }, [solutionsData, contentForm]);
+
   if (isLoading) {
     return <div className="flex justify-center p-8"><Loader2 className="h-6 w-6 animate-spin" /></div>;
-  }
-
-  if (solutionsData?.content && !contentForm.formState.isDirty) {
-    contentForm.reset(solutionsData.content);
   }
 
   const openEditDialog = (item: any) => {

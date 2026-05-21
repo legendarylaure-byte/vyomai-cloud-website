@@ -23,7 +23,8 @@ export default function Home() {
 
   const { data: settings, isLoading: settingsLoading } = useQuery<SiteSettings>({
     queryKey: ["/api/settings"],
-    staleTime: 1000 * 60 * 2,
+    staleTime: 0,
+    refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
 
