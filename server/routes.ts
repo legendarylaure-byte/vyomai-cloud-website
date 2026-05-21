@@ -3139,7 +3139,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
   });
 
   // ============== FILE UPLOAD ==============
-  const isBlobAvailable = !!process.env.VERCEL_BLOB_READ_WRITE_TOKEN;
+  const isBlobAvailable = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN);
   const uploadsDir = path.join(process.cwd(), "uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
