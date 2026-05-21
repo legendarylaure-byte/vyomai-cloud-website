@@ -162,8 +162,8 @@ export const siteSettingsSchema = z.object({
   smtpSecure: z.boolean().optional().default(false),
   // SendGrid Settings
   sendgridFromEmail: z.string().email().optional(),
-  // Provider priority
   emailProviderPriority: z.string().max(200).optional().default("smtp,gmail,sendgrid"),
+  emailFeaturesEnabled: z.boolean().optional().default(true),
 });
 
 export type SiteSettings = z.infer<typeof siteSettingsSchema>;

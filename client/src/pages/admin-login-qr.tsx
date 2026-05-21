@@ -220,8 +220,7 @@ export default function AdminLoginQR() {
 
   const requestResetMutation = useMutation({
     mutationFn: async (data: ResetPasswordRequest) => {
-      const res = await apiRequest("POST", "/api/admin/request-password-reset", data);
-      return res.json();
+      return apiRequest("POST", "/api/admin/request-password-reset", data);
     },
     onSuccess: (body: any) => {
       if (body.emailDeliveryFailed) {
