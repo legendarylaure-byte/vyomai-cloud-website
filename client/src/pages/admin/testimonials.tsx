@@ -9,7 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Plus, Trash2, Edit, Loader2, Star, Star as StarIcon } from "lucide-react";
+import { Plus, Trash2, Edit, Loader2, Star, Star as StarIcon, Sparkles } from "lucide-react";
 
 interface TestimonialItem {
   id: string;
@@ -190,7 +190,18 @@ export function TestimonialsPage() {
             </div>
             <div>
               <Label>Avatar URL</Label>
-              <Input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." />
+              <div className="flex gap-2">
+                <Input value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://..." className="flex-1" />
+                <Button type="button" variant="outline" size="sm" onClick={() => {
+                  if (!name.trim()) { toast({ title: "Enter a name first", variant: "destructive" }); return; }
+                  const encoded = encodeURIComponent(name.trim());
+                  setAvatarUrl(`https://ui-avatars.com/api/?name=${encoded}&background=7c3aed&color=fff&size=200&bold=true`);
+                  toast({ title: "Avatar generated ✨", description: "Avatar created from name initials" });
+                }} className="gap-1.5 text-purple-600 border-purple-300 whitespace-nowrap">
+                  <Sparkles className="w-4 h-4" />
+                  AI Avatar
+                </Button>
+              </div>
             </div>
             <div>
               <Label>Content *</Label>

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -63,6 +63,7 @@ export function ArticlesPage() {
   const [isAiSearch, setIsAiSearch] = useState(false);
   const [aiSearchResults, setAiSearchResults] = useState<Set<string> | null>(null);
   const [isSearchingAi, setIsSearchingAi] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const { data: articles = [], isLoading } = useQuery<Article[]>({
     queryKey: ["/api/admin/articles"],
@@ -208,6 +209,7 @@ export function ArticlesPage() {
   };
 
   const generateSummary = async () => {
+    const title = form.getValues("title");
     const content = form.getValues("content");
     if (!content || content.length < 20) {
       toast({ title: "Write content first", description: "Add article content before generating a summary", variant: "destructive" });
@@ -215,8 +217,11 @@ export function ArticlesPage() {
     }
     setIsGeneratingSummary(true);
     try {
+      const prompt = title
+        ? `Summarize the article titled "${title}" in 2-3 sentences. Keep it concise and engaging:\n\n${content.slice(0, 4000)}`
+        : `Summarize the following article in 2-3 sentences. Keep it concise and engaging:\n\n${content.slice(0, 4000)}`;
       const data = await aiGenerateMutation.mutateAsync({
-        prompt: `Summarize the following article in 2-3 sentences. Keep it concise and engaging:\n\n${content.slice(0, 4000)}`,
+        prompt,
         system: "You are a professional content summarizer.",
       });
       form.setValue("summary", data.text);
@@ -1327,7 +1332,7 @@ export function ArticlesPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => deleteArticleMutation.mutate(article.id)}
+                        onClick={() => setDeleteConfirmId(article.id)}
                         data-testid={`button-delete-article-${article.id}`}
                         className="gap-1.5 text-destructive hover:text-destructive"
                       >
@@ -1349,6 +1354,28 @@ export function ArticlesPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Article</DialogTitle>
+            <DialogDescription>Are you sure you want to delete this article? This action cannot be undone.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancel</Button>
+            <Button variant="destructive" onClick={() => {
+              if (deleteConfirmId) {
+                deleteArticleMutation.mutate(deleteConfirmId);
+                setDeleteConfirmId(null);
+              }
+            }} disabled={deleteArticleMutation.isPending}>
+              {deleteArticleMutation.isPending ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

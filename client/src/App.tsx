@@ -32,7 +32,6 @@ function Router() {
       <Route path="/admin/social-media-integration" component={AdminDashboard} />
       <Route path="/admin/email-settings" component={AdminDashboard} />
       <Route path="/admin/analytics" component={AdminDashboard} />
-      <Route path="/admin/media" component={AdminDashboard} />
       <Route path="/admin/testimonials" component={AdminDashboard} />
       <Route path="/admin/faq" component={AdminDashboard} />
       <Route path="/email/login" component={EmailLogin} />

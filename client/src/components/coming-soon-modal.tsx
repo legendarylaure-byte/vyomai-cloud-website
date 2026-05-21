@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Sparkles, X } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 interface ComingSoonModalProps {
   open: boolean;
@@ -25,16 +25,6 @@ export function ComingSoonModal({
           exit={{ opacity: 0, scale: 0.9 }}
           className="relative space-y-6 py-8"
         >
-          <div className="absolute top-2 right-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              data-testid="button-close-modal"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
 
           <div className="flex justify-center">
             <motion.div

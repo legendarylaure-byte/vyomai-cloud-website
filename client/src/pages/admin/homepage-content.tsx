@@ -792,7 +792,24 @@ function AboutSection() {
                 name="title"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Title</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Title</FormLabel>
+                      <Button type="button" variant="ghost" size="sm" onClick={async () => {
+                        try {
+                          const token = localStorage.getItem("vyomai-admin-token");
+                          const res = await fetch("/api/admin/ai/generate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ prompt: "Generate a short, compelling title for a value/belief card of VyomAi Cloud, an AI solutions company. Examples: 'Innovation First', 'Client Success', 'Ethical AI'. Return ONLY the title text, 2-4 words.", system: "You are a branding expert." }),
+                          });
+                          const data = await res.json();
+                          if (data.text) field.onChange(data.text.trim());
+                        } catch { toast({ title: "AI generation failed", variant: "destructive" }); }
+                      }} className="gap-1 h-7 text-xs text-purple-600">
+                        <Sparkles className="w-3 h-3" />
+                        AI
+                      </Button>
+                    </div>
                     <FormControl>
                       <Input placeholder="e.g., Our Mission" {...field} />
                     </FormControl>
@@ -805,7 +822,26 @@ function AboutSection() {
                 name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Description</FormLabel>
+                    <div className="flex items-center justify-between">
+                      <FormLabel>Description</FormLabel>
+                      <Button type="button" variant="ghost" size="sm" onClick={async () => {
+                        try {
+                          const title = valueForm.getValues("title");
+                          if (!title) { toast({ title: "Add a title first", variant: "destructive" }); return; }
+                          const token = localStorage.getItem("vyomai-admin-token");
+                          const res = await fetch("/api/admin/ai/generate", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+                            body: JSON.stringify({ prompt: `Write 1-2 sentences describing the value "${title}" for VyomAi Cloud, an AI solutions company. Explain why this value matters. Return ONLY the description.`, system: "You are a marketing copywriter." }),
+                          });
+                          const data = await res.json();
+                          if (data.text) field.onChange(data.text.trim());
+                        } catch { toast({ title: "AI generation failed", variant: "destructive" }); }
+                      }} className="gap-1 h-7 text-xs text-purple-600">
+                        <Sparkles className="w-3 h-3" />
+                        AI
+                      </Button>
+                    </div>
                     <FormControl>
                       <Textarea placeholder="Value description..." {...field} />
                     </FormControl>

@@ -154,7 +154,9 @@ export async function registerRoutes(
   app.get("/api/articles", async (req, res) => {
     try {
       const articles = await storage.getArticles();
-      res.json(articles.filter((a: Article) => a.published));
+      const published = articles.filter((a: Article) => a.published);
+      const sanitized = published.map(({ createdBy: _, ...rest }: Article) => rest);
+      res.json(sanitized);
     } catch (error) {
       res.status(500).json({ error: "Failed to get articles" });
     }
