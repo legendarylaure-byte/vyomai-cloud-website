@@ -1,4 +1,5 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
+import { put as blobPut, del as blobDel } from "@vercel/blob";
 import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
@@ -3138,6 +3139,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
   });
 
   // ============== FILE UPLOAD ==============
+  const isBlobAvailable = !!process.env.VERCEL_BLOB_READ_WRITE_TOKEN;
   const uploadsDir = path.join(process.cwd(), "uploads");
   if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
@@ -3162,20 +3164,58 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
     },
   });
 
-  app.use("/uploads", express.static(uploadsDir));
+  if (!isBlobAvailable) {
+    app.use("/uploads", express.static(uploadsDir));
+  }
+
+  async function storeFile(file: Express.Multer.File): Promise<{ url: string; filename: string }> {
+    const ext = path.extname(file.originalname);
+    const filename = `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`;
+
+    if (isBlobAvailable) {
+      const buffer = fs.readFileSync(file.path);
+      const blob = await blobPut(filename, buffer, {
+        access: "public",
+        contentType: file.mimetype,
+        addRandomSuffix: false,
+      });
+      fs.unlinkSync(file.path);
+      return { url: blob.url, filename };
+    }
+
+    const finalPath = path.join(uploadsDir, filename);
+    fs.renameSync(file.path, finalPath);
+    return { url: `/uploads/${filename}`, filename };
+  }
+
+  async function removeFile(url: string, filename: string): Promise<void> {
+    if (isBlobAvailable) {
+      try {
+        await blobDel(url);
+      } catch (e) {
+        console.error("Blob delete error:", e);
+      }
+      return;
+    }
+    const filePath = path.join(uploadsDir, filename);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  }
 
   app.post("/api/admin/upload", authMiddleware, upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file provided" });
       }
+      const { url, filename } = await storeFile(req.file);
       const file: UploadedFile = {
         id: randomUUID(),
-        filename: req.file.filename,
+        filename,
         originalName: req.file.originalname,
         mimeType: req.file.mimetype,
         size: req.file.size,
-        url: `/uploads/${req.file.filename}`,
+        url,
         uploadedAt: new Date().toISOString(),
       };
       const created = await storage.createUploadedFile(file);
@@ -3202,10 +3242,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       if (!file) {
         return res.status(404).json({ error: "File not found" });
       }
-      const filePath = path.join(uploadsDir, file.filename);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
-      }
+      await removeFile(file.url, file.filename);
       await storage.deleteUploadedFile(req.params.id);
       res.json({ success: true });
     } catch (error) {
