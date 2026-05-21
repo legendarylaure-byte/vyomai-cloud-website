@@ -1,5 +1,4 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
-import { put as blobPut, del as blobDel } from "@vercel/blob";
 import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
@@ -3140,32 +3139,37 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
 
   // ============== FILE UPLOAD ==============
   const isBlobAvailable = !!(process.env.BLOB_READ_WRITE_TOKEN || process.env.VERCEL_BLOB_READ_WRITE_TOKEN);
-  const uploadsDir = path.join(process.cwd(), "uploads");
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
 
-  const fileStorage = multer.diskStorage({
-    destination: (_req, _file, cb) => cb(null, uploadsDir),
-    filename: (_req, file, cb) => {
-      const ext = path.extname(file.originalname);
-      cb(null, `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`);
-    },
-  });
+  let uploadsDir = "";
+  let upload: multer.Multer | undefined;
 
-  const upload = multer({
-    storage: fileStorage,
-    limits: { fileSize: 10 * 1024 * 1024 },
-    fileFilter: (_req, file, cb) => {
-      const allowed = /jpeg|jpg|png|gif|webp|svg|mp4|webm|pdf|doc|docx/;
-      const ext = allowed.test(path.extname(file.originalname).toLowerCase());
-      const mime = allowed.test(file.mimetype.split("/")[1]);
-      cb(null, ext || mime);
-    },
-  });
-
-  if (!isBlobAvailable) {
-    app.use("/uploads", express.static(uploadsDir));
+  try {
+    uploadsDir = path.join(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    const fileStorage = multer.diskStorage({
+      destination: (_req, _file, cb) => cb(null, uploadsDir),
+      filename: (_req, file, cb) => {
+        const ext = path.extname(file.originalname);
+        cb(null, `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`);
+      },
+    });
+    upload = multer({
+      storage: fileStorage,
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        const allowed = /jpeg|jpg|png|gif|webp|svg|mp4|webm|pdf|doc|docx/;
+        const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+        const mime = allowed.test(file.mimetype.split("/")[1]);
+        cb(null, ext || mime);
+      },
+    });
+    if (!isBlobAvailable) {
+      app.use("/uploads", express.static(uploadsDir));
+    }
+  } catch (e) {
+    console.warn("Local upload dir not available, using memory-based upload:", e);
   }
 
   async function storeFile(file: Express.Multer.File): Promise<{ url: string; filename: string }> {
@@ -3173,13 +3177,14 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
     const filename = `${Date.now()}-${randomUUID().slice(0, 8)}${ext}`;
 
     if (isBlobAvailable) {
+      const { put: blobPut } = await import("@vercel/blob");
       const buffer = fs.readFileSync(file.path);
       const blob = await blobPut(filename, buffer, {
         access: "public",
         contentType: file.mimetype,
         addRandomSuffix: false,
       });
-      fs.unlinkSync(file.path);
+      try { fs.unlinkSync(file.path); } catch {}
       return { url: blob.url, filename };
     }
 
@@ -3191,6 +3196,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
   async function removeFile(url: string, filename: string): Promise<void> {
     if (isBlobAvailable) {
       try {
+        const { del: blobDel } = await import("@vercel/blob");
         await blobDel(url);
       } catch (e) {
         console.error("Blob delete error:", e);
@@ -3203,7 +3209,12 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
     }
   }
 
-  app.post("/api/admin/upload", authMiddleware, upload.single("file"), async (req, res) => {
+  app.post("/api/admin/upload", authMiddleware, (req, res, next) => {
+    if (!upload) {
+      return res.status(503).json({ error: "Upload system not available (read-only filesystem)" });
+    }
+    upload.single("file")(req, res, next);
+  }, async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No file provided" });

@@ -768,4 +768,21 @@ export class FirebaseStorage {
   async getSocialMediaApiConfig(_platform: string) { return undefined; }
   async updateSocialMediaApiConfig(_platform: string, _config: any) { return {}; }
   async deleteSocialMediaApiConfig(_platform: string) { return true; }
+
+  // ---- Uploaded Files (stubs) ----
+  async getUploadedFiles() { return []; }
+  async createUploadedFile(file: any) { return file; }
+  async deleteUploadedFile(_id: string) { return true; }
+
+  // ---- FAQ (stubs) ----
+  async getFaqs() { return []; }
+  async createFaq(faq: any) { return { ...faq, id: randomUUID(), createdAt: new Date().toISOString() }; }
+  async updateFaq(_id: string, faq: any) { return faq; }
+  async deleteFaq(_id: string) { return true; }
+
+  // ---- Testimonials (stubs) ----
+  async getTestimonials() { return []; }
+  async createTestimonial(t: any) { return { ...t, id: randomUUID(), createdAt: new Date().toISOString() }; }
+  async updateTestimonial(_id: string, t: any) { return t; }
+  async deleteTestimonial(_id: string) { return true; }
 }
