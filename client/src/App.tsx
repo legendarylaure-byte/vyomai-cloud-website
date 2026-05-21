@@ -11,6 +11,7 @@ import AdminLoginQR from "@/pages/admin-login-qr";
 import AdminDashboard from "@/pages/admin-dashboard";
 import EmailLogin from "@/pages/email-login";
 import EmailInbox from "@/pages/email-inbox";
+import AdminSignup from "@/pages/admin-signup";
 import NotFound from "@/pages/not-found";
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
@@ -20,6 +21,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/admin" component={AdminLoginQR} />
+      <Route path="/admin/signup" component={AdminSignup} />
       <Route path="/admin/dashboard" component={AdminDashboard} />
       <Route path="/admin/homepage-content" component={AdminDashboard} />
       <Route path="/admin/articles" component={AdminDashboard} />
@@ -36,6 +38,9 @@ function Router() {
       <Route path="/admin/email-settings" component={AdminDashboard} />
       <Route path="/admin/analytics" component={AdminDashboard} />
       <Route path="/admin/testimonials" component={AdminDashboard} />
+      <Route path="/admin/faq" component={AdminDashboard} />
+      <Route path="/admin/leads" component={AdminDashboard} />
+      <Route path="/admin/lead/:id" component={AdminDashboard} />
       <Route path="/admin/faq" component={AdminDashboard} />
       <Route path="/email/login" component={EmailLogin} />
       <Route path="/email/inbox" component={EmailInbox} />

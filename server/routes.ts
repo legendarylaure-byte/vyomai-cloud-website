@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import path from "path";
 import fs from "fs";
 import { storage } from "./storage.js";
-import { insertArticleSchema, insertTeamMemberSchema, insertPricingPackageSchema, insertProjectDiscussionSchema, insertBookingRequestSchema, insertOneTimePricingRequestSchema, insertSocialMediaAnalyticsSchema, insertSocialMediaIntegrationSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordSchema, insertCustomerInquirySchema, insertFaqSchema, insertTestimonialSchema, SocialMediaIntegration, Article, UploadedFile, Faq, Testimonial, verify2faSchema, googleAuthSchema, twoFactorSettingsSchema } from "../shared/schema.js";
+import { insertArticleSchema, insertTeamMemberSchema, insertPricingPackageSchema, insertProjectDiscussionSchema, insertBookingRequestSchema, insertOneTimePricingRequestSchema, insertSocialMediaAnalyticsSchema, insertSocialMediaIntegrationSchema, resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordSchema, insertCustomerInquirySchema, insertFaqSchema, insertTestimonialSchema, SocialMediaIntegration, Article, UploadedFile, Faq, Testimonial, verify2faSchema, googleAuthSchema, twoFactorSettingsSchema, insertLeadSchema, leadUpdateSchema, Lead } from "../shared/schema.js";
 import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { GoogleGenerativeAI } from "@google/generative-ai";
@@ -438,6 +438,89 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
     }
   });
 
+  // Return current user profile with permissions for client-side RBAC
+  app.get("/api/admin/me", authMiddleware, async (req, res) => {
+    try {
+      const { username } = (req as any).user;
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      res.json({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role || "admin",
+        permissions: user.permissions || "[]",
+        googleId: user.googleId,
+        twoFactorEnabled: user.twoFactorEnabled,
+      });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get user profile" });
+    }
+  });
+
+  // Permission-based middleware factory
+  function permissionMiddleware(...moduleIds: string[]) {
+    return async (req: Request, res: Response, next: NextFunction) => {
+      try {
+        const { username, role } = (req as any).user;
+        if (role === "vyom_admin") return next(); // vyom_admin bypasses all permission checks
+        const user = await storage.getUserByUsername(username);
+        if (!user) return res.status(403).json({ error: "User not found" });
+        const perms: string[] = user.permissions ? JSON.parse(user.permissions) : [];
+        const hasAny = moduleIds.some(m => perms.includes(m));
+        if (!hasAny) {
+          return res.status(403).json({ error: "Access denied. You don't have permission for this module." });
+        }
+        next();
+      } catch (error) {
+        res.status(500).json({ error: "Permission check failed" });
+      }
+    };
+  }
+
+  const signupSchema = z.object({
+    username: z.string().min(2).max(64),
+    email: z.string().email(),
+    password: z.string().min(8).max(128),
+    name: z.string().min(2).max(128).optional(),
+  });
+
+  app.post("/api/admin/signup", async (req, res) => {
+    try {
+      const parsed = signupSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid input: " + parsed.error.errors.map(e => e.message).join(", ") });
+      }
+      const { username, email, password } = parsed.data;
+
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(409).json({ error: "Username already exists" });
+      }
+      const existingEmail = await storage.getUserByEmail(email);
+      if (existingEmail) {
+        return res.status(409).json({ error: "Email already registered" });
+      }
+
+      const hashedPassword = await bcryptjs.hash(password, 10);
+      const user = await storage.createUser({
+        username,
+        email,
+        password: hashedPassword,
+        role: "admin",
+        permissions: "[]",
+      });
+
+      console.log(`✅ New user signed up: "${username}" (email: ${email})`);
+      res.json({ success: true, message: "Account created successfully" });
+    } catch (error) {
+      console.error("Signup error:", error);
+      res.status(500).json({ error: "Failed to create account" });
+    }
+  });
+
   app.post("/api/admin/login", async (req, res) => {
     try {
       const parsed = loginSchema.safeParse(req.body);
@@ -455,6 +538,11 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       if (!user) {
         console.warn(`Login failed: user not found for "${username}"`);
         return res.status(401).json({ error: "Invalid credentials" });
+      }
+
+      if (!user.password) {
+        console.warn(`Login failed: "${username}" has no password (Google-only account). Use Google sign-in.`);
+        return res.status(401).json({ error: "This account uses Google sign-in. Please login with Google." });
       }
 
       const isPasswordValid = await bcryptjs.compare(password, user.password);
@@ -673,14 +761,19 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       await storage.storeResetCode(email, code);
 
       // Send email with code
+      let emailSent = false;
       try {
         await sendPasswordResetEmail(email, code);
+        emailSent = true;
       } catch (emailError) {
         console.error("❌ Email sending error:", emailError);
-        // Still return success but log the error
       }
 
-      res.json({ success: true, message: "Verification code sent to email" });
+      if (emailSent) {
+        res.json({ success: true, message: "Verification code sent to email" });
+      } else {
+        res.json({ success: true, message: "Code stored but email delivery failed. Check your email server configuration or contact support.", emailDeliveryFailed: true });
+      }
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ error: error.errors });
@@ -1521,6 +1614,30 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
         }
       })();
 
+      // Auto-create a Lead from this inquiry (non-blocking)
+      (async () => {
+        try {
+          const sourceMap: Record<string, "website_form" | "booking" | "project_discussion" | "custom_solution"> = {
+            contact: "website_form",
+            booking: "booking",
+            project_discussion: "project_discussion",
+            custom_solution: "custom_solution",
+          };
+          await storage.createLead({
+            name: validated.name,
+            email: validated.email,
+            phone: validated.phone || "",
+            company: validated.company || "",
+            source: sourceMap[validated.inquiryType] || "website_form",
+            notes: validated.message,
+            sourceInquiryId: inquiry.id,
+            status: "new",
+          });
+        } catch (leadErr) {
+          console.error("Lead auto-creation from inquiry failed:", leadErr);
+        }
+      })();
+
       res.json(inquiry);
     } catch (error: any) {
       console.error("Customer inquiry error:", error);
@@ -1582,6 +1699,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
         role: u.role || "admin",
         permissions: u.permissions,
         twoFactorEnabled: u.twoFactorEnabled,
+        googleId: u.googleId,
         createdAt: u.createdAt
       }));
       res.json(safeUsers);
@@ -1672,11 +1790,17 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       if (!password || password.length < 6) {
         return res.status(400).json({ error: "Password must be at least 6 characters" });
       }
-      // @ts-ignore
       const hashedPassword = await bcryptjs.hash(password, 10);
-      const updated = await storage.updateUser(req.params.id, { password: hashedPassword });
+      // Try by ID first, then by email as fallback
+      let updated = await storage.updateUserPassword(req.params.id, hashedPassword);
       if (!updated) {
-        return res.status(404).json({ error: "User not found" });
+        const userByEmail = await storage.getUserByEmail(req.params.id);
+        if (userByEmail) {
+          updated = await storage.updateUserPassword(userByEmail.id, hashedPassword);
+        }
+      }
+      if (!updated) {
+        return res.status(404).json({ error: "User not found. Ensure the user ID or email is correct." });
       }
       res.json({ success: true });
     } catch (error) {
@@ -1716,6 +1840,292 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       res.status(500).json({ error: "Failed to delete user" });
     }
   });
+
+  // ============== LEAD MANAGEMENT ROUTES ==============
+
+  // Get all leads with optional filters
+  app.get("/api/admin/leads", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const { status, source, assignedTo, search } = req.query;
+      const filters: any = {};
+      if (status) filters.status = status as string;
+      if (source) filters.source = source as string;
+      if (assignedTo) filters.assignedTo = assignedTo as string;
+      if (search) filters.search = search as string;
+      const leads = await storage.getLeads(filters);
+      // Also include enrichment data via Gemini scores
+      res.json(leads);
+    } catch (error) {
+      console.error("Get leads error:", error);
+      res.status(500).json({ error: "Failed to get leads" });
+    }
+  });
+
+  // Get single lead
+  app.get("/api/admin/leads/:id", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const lead = await storage.getLead(req.params.id);
+      if (!lead) return res.status(404).json({ error: "Lead not found" });
+      res.json(lead);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get lead" });
+    }
+  });
+
+  // Create lead manually
+  app.post("/api/admin/leads", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const validated = insertLeadSchema.parse(req.body);
+      const lead = await storage.createLead(validated);
+      res.status(201).json(lead);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      console.error("Create lead error:", error);
+      res.status(500).json({ error: "Failed to create lead" });
+    }
+  });
+
+  // Update lead
+  app.put("/api/admin/leads/:id", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const validated = leadUpdateSchema.parse(req.body);
+      const updated = await storage.updateLead(req.params.id, validated);
+      if (!updated) return res.status(404).json({ error: "Lead not found" });
+      res.json(updated);
+    } catch (error) {
+      if (error instanceof z.ZodError) return res.status(400).json({ error: error.errors });
+      console.error("Update lead error:", error);
+      res.status(500).json({ error: "Failed to update lead" });
+    }
+  });
+
+  // Delete lead
+  app.delete("/api/admin/leads/:id", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const deleted = await storage.deleteLead(req.params.id);
+      if (!deleted) return res.status(404).json({ error: "Lead not found" });
+      res.json({ success: true });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to delete lead" });
+    }
+  });
+
+  // AI Enrich: analyze a lead with Gemini
+  app.post("/api/admin/leads/:id/ai-enrich", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const lead = await storage.getLead(req.params.id);
+      if (!lead) return res.status(404).json({ error: "Lead not found" });
+
+      if (!genAI) {
+        return res.status(503).json({ error: "AI service not configured (GEMINI_API_KEY missing)" });
+      }
+
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: "You are a lead analysis AI for VyomAi Cloud, an AI and digital services company. Analyze leads and return structured JSON.",
+      });
+
+      const prompt = `You are analyzing a business lead for VyomAi Cloud.
+Given the following lead information:
+Name: ${lead.name}
+Company: ${lead.company || "N/A"}
+Email: ${lead.email}
+Message/Source: ${lead.notes || lead.intent || "No additional context"}
+Source Type: ${lead.source}
+
+Please analyze and return JSON only (no markdown):
+{
+  "industry": "predicted industry (e.g., E-commerce, Healthcare, Education, Real Estate, Technology, Finance, Other)",
+  "vyomaiService": "best matching service (ai_solutions, web_development, digital_marketing, seo, social_media, content_creation, consulting)",
+  "intent": "one-sentence summary of what they need",
+  "score": number_between_0_and_100_based_on_relevance,
+  "keywords": "3-5 comma-separated keywords from their info"
+}`;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      let enrichment: any;
+      try {
+        enrichment = JSON.parse(text.replace(/```json?/g, '').replace(/```/g, '').trim());
+      } catch {
+        enrichment = { raw: text };
+      }
+
+      // Update the lead with AI-enriched data
+      await storage.updateLead(lead.id, {
+        industry: enrichment.industry || lead.industry,
+        vyomaiService: enrichment.vyomaiService || lead.vyomaiService,
+        intent: enrichment.intent || lead.intent,
+        score: enrichment.score ?? lead.score,
+      });
+
+      res.json({ ...enrichment, message: "Lead enriched successfully" });
+    } catch (error) {
+      console.error("AI enrich error:", error);
+      res.status(500).json({ error: "AI enrichment failed" });
+    }
+  });
+
+  // AI Auto-Assign: Gemini assigns lead to best user
+  app.post("/api/admin/leads/:id/ai-assign", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const lead = await storage.getLead(req.params.id);
+      if (!lead) return res.status(404).json({ error: "Lead not found" });
+
+      if (!genAI) {
+        return res.status(503).json({ error: "AI service not configured" });
+      }
+
+      const allUsers = await storage.getAllUsers();
+      const assignableUsers = allUsers.filter((u: any) => {
+        const perms: string[] = u.permissions ? JSON.parse(u.permissions) : [];
+        return perms.includes("leads") && u.role !== "vyom_admin";
+      });
+
+      if (assignableUsers.length === 0) {
+        return res.status(400).json({ error: "No available users with leads module permission" });
+      }
+
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: "You are a lead assignment AI. Pick the best team member for a lead based on expertise and current workload.",
+      });
+
+      const userList = assignableUsers.map((u: any) => {
+        const perms: string[] = u.permissions ? JSON.parse(u.permissions) : [];
+        return `${u.username} (id: ${u.id}) - modules: ${perms.join(", ")}`;
+      }).join("\n");
+
+      const currentAssignments = await Promise.all(
+        assignableUsers.map(async (u: any) => ({
+          username: u.username,
+          id: u.id,
+          currentLeads: (await storage.getLeadsByAssignee(u.id)).length,
+        }))
+      );
+
+      const workloadInfo = currentAssignments.map((a: any) =>
+        `${a.username}: ${a.currentLeads} active leads`
+      ).join(", ");
+
+      const prompt = `Select the best user to assign this lead to:
+Lead: ${lead.name}, Company: ${lead.company || "N/A"}, Service interest: ${lead.vyomaiService || "Unknown"}
+Available users:
+${userList}
+Current workload:
+${workloadInfo}
+
+Return JSON only: { "userId": "selected user id", "username": "selected username", "reason": "brief reason" }`;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+      let decision: any;
+      try {
+        decision = JSON.parse(text.replace(/```json?/g, '').replace(/```/g, '').trim());
+      } catch {
+        decision = { userId: assignableUsers[0].id, username: assignableUsers[0].username, reason: "Fallback: default assignment" };
+      }
+
+      if (decision.userId) {
+        await storage.updateLead(lead.id, {
+          assignedTo: decision.userId,
+          assignedByName: decision.username || "AI Agent",
+        });
+      }
+
+      res.json({ assignedTo: decision.userId, assignedByName: decision.username, reason: decision.reason });
+    } catch (error) {
+      console.error("AI assign error:", error);
+      res.status(500).json({ error: "AI assignment failed" });
+    }
+  });
+
+  // Convert a CustomerInquiry to a Lead
+  app.post("/api/admin/leads/convert-from-inquiry/:id", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const inquiry = await storage.getCustomerInquiry(req.params.id);
+      if (!inquiry) return res.status(404).json({ error: "Inquiry not found" });
+
+      const sourceMap: Record<string, "website_form" | "booking" | "project_discussion" | "custom_solution"> = {
+        contact: "website_form",
+        booking: "booking",
+        project_discussion: "project_discussion",
+        custom_solution: "custom_solution",
+      };
+
+      const lead = await storage.createLead({
+        name: inquiry.name,
+        email: inquiry.email,
+        phone: inquiry.phone || "",
+        company: inquiry.company || "",
+        source: sourceMap[inquiry.inquiryType] || "website_form",
+        notes: inquiry.message,
+        sourceInquiryId: inquiry.id,
+        status: "new",
+      });
+
+      res.status(201).json(lead);
+    } catch (error) {
+      console.error("Convert to lead error:", error);
+      res.status(500).json({ error: "Failed to convert inquiry to lead" });
+    }
+  });
+
+  // Lead stats endpoint (for dashboard widgets)
+  app.get("/api/admin/leads/stats/summary", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const leads = await storage.getLeads();
+      const total = leads.length;
+      const byStatus: Record<string, number> = {};
+      const byService: Record<string, number> = {};
+      for (const l of leads) {
+        byStatus[l.status] = (byStatus[l.status] || 0) + 1;
+        if (l.vyomaiService) byService[l.vyomaiService] = (byService[l.vyomaiService] || 0) + 1;
+      }
+      res.json({ total, byStatus, byService });
+    } catch (error) {
+      res.status(500).json({ error: "Failed to get lead stats" });
+    }
+  });
+
+  // Auto-create lead from new inquiry (hook into existing POST /api/inquiries)
+  // The actual hook is inside the POST /api/inquiries handler
+
+  // Migrate all existing inquiries that don't have leads to leads
+  app.post("/api/admin/leads/migrate-from-inquiries", authMiddleware, permissionMiddleware("leads"), async (req, res) => {
+    try {
+      const inquiries = await storage.getCustomerInquiries();
+      const sourceMap: Record<string, "website_form" | "booking" | "project_discussion" | "custom_solution"> = {
+        contact: "website_form",
+        booking: "booking",
+        project_discussion: "project_discussion",
+        custom_solution: "custom_solution",
+      };
+      let created = 0;
+      for (const inquiry of inquiries) {
+        const existingLeads = await storage.getLeads();
+        const alreadyExists = existingLeads.some((l: Lead) => l.sourceInquiryId === inquiry.id);
+        if (alreadyExists) continue;
+        await storage.createLead({
+          name: inquiry.name,
+          email: inquiry.email,
+          phone: inquiry.phone || "",
+          company: inquiry.company || "",
+          source: sourceMap[inquiry.inquiryType] || "website_form",
+          notes: inquiry.message,
+          sourceInquiryId: inquiry.id,
+          status: "new",
+        });
+        created++;
+      }
+      res.json({ success: true, created, total: inquiries.length });
+    } catch (error) {
+      console.error("Migration error:", error);
+      res.status(500).json({ error: "Migration failed" });
+    }
+  });
+
+  // ============== END LEAD MANAGEMENT ROUTES ==============
 
   // One-Time Pricing Request routes
   app.post("/api/one-time-pricing-request", async (req, res) => {

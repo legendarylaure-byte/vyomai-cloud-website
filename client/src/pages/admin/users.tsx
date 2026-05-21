@@ -23,6 +23,7 @@ interface User {
   role: string;
   permissions?: string;
   twoFactorEnabled?: boolean;
+  googleId?: string;
   createdAt?: string;
 }
 
@@ -33,6 +34,7 @@ const MODULES = [
   { id: "team", label: "Team Members", description: "Manage team profiles" },
   { id: "pricing", label: "Pricing Plans", description: "Configure pricing packages" },
   { id: "communications", label: "Communications", description: "Handle bookings and inquiries" },
+  { id: "leads", label: "Lead Management", description: "Track and manage leads" },
   { id: "social", label: "Social Media", description: "Manage social integrations" },
   { id: "email", label: "Email Settings", description: "Configure email services" },
   { id: "popup", label: "Popup Forms", description: "Create marketing popups" },
@@ -402,7 +404,14 @@ export function UsersPage() {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-gray-500">{user.email || "No email set"}</p>
+                      <p className="text-sm text-gray-500">
+                        {user.email || "No email set"}
+                        {user.googleId && (
+                          <Badge variant="outline" className="ml-2 text-xs text-blue-600 border-blue-200 bg-blue-50">
+                            Google linked
+                          </Badge>
+                        )}
+                      </p>
                       {user.permissions && (
                         <div className="flex items-center gap-1 mt-1">
                           <Settings2 className="w-3 h-3 text-gray-400" />

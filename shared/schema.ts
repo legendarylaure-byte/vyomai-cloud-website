@@ -567,3 +567,49 @@ export const twoFactorSettingsSchema = z.object({
 });
 
 export type TwoFactorSettings = z.infer<typeof twoFactorSettingsSchema>;
+
+// Lead schema for the Lead Management module
+export const leadSchema = z.object({
+  id: z.string(),
+  name: z.string().min(1).max(200),
+  email: z.string().email().max(254),
+  phone: z.string().max(50).optional(),
+  company: z.string().max(200).optional(),
+  website: z.string().max(500).optional(),
+  industry: z.string().max(200).optional(),
+  source: z.enum(["website_form", "booking", "project_discussion", "custom_solution", "manual_entry", "ai_generated"]),
+  vyomaiService: z.enum(["ai_solutions", "web_development", "digital_marketing", "seo", "social_media", "content_creation", "consulting", "other"]).optional(),
+  status: z.enum(["new", "qualified", "contacted", "converted", "lost"]).default("new"),
+  score: z.number().min(0).max(100).optional(),
+  intent: z.string().max(500).optional(),
+  notes: z.string().max(5000).optional(),
+  assignedTo: z.string().optional(),
+  assignedByName: z.string().optional(),
+  sourceInquiryId: z.string().optional(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+
+export const insertLeadSchema = leadSchema.omit({ id: true, createdAt: true, updatedAt: true });
+
+export type Lead = z.infer<typeof leadSchema>;
+export type InsertLead = z.infer<typeof insertLeadSchema>;
+
+export const leadUpdateSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  email: z.string().email().max(254).optional(),
+  phone: z.string().max(50).optional(),
+  company: z.string().max(200).optional(),
+  website: z.string().max(500).optional(),
+  industry: z.string().max(200).optional(),
+  source: z.enum(["website_form", "booking", "project_discussion", "custom_solution", "manual_entry", "ai_generated"]).optional(),
+  vyomaiService: z.enum(["ai_solutions", "web_development", "digital_marketing", "seo", "social_media", "content_creation", "consulting", "other"]).optional(),
+  status: z.enum(["new", "qualified", "contacted", "converted", "lost"]).optional(),
+  score: z.number().min(0).max(100).optional(),
+  intent: z.string().max(500).optional(),
+  notes: z.string().max(5000).optional(),
+  assignedTo: z.string().optional(),
+  assignedByName: z.string().optional(),
+});
+
+export type LeadUpdate = z.infer<typeof leadUpdateSchema>;

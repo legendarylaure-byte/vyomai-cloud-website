@@ -479,7 +479,13 @@ export default function AdminLogin() {
             </Dialog>
 
             <p className="text-xs text-muted-foreground text-center">
-              Default: admin / admin123
+              Don't have an account?{" "}
+              <button
+                onClick={() => setLocation("/admin/signup")}
+                className="text-primary hover:underline underline-offset-2"
+              >
+                Sign up
+              </button>
             </p>
           </div>
         </CardContent>

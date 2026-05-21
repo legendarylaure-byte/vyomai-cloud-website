@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Article, type InsertArticle, type SiteSettings, type VisitorStats, type TeamMember, type InsertTeamMember, type PricingPackage, type InsertPricingPackage, type ProjectDiscussion, type InsertProjectDiscussion, type BookingRequest, type InsertBookingRequest, type SocialMediaAnalytics, type InsertSocialMediaAnalytics, type SocialMediaIntegration, type InsertSocialMediaIntegration, type OneTimePricingRequest, type InsertOneTimePricingRequest, type CustomerInquiry, type InsertCustomerInquiry, type HeroContent, type InsertHeroContent, type AboutContent, type InsertAboutContent, type AboutValue, type InsertAboutValue, type ServicesContent, type InsertServicesContent, type ServiceItem, type InsertServiceItem, type SolutionsContent, type InsertSolutionsContent, type SolutionItem, type InsertSolutionItem, type PopupForm, type InsertPopupForm, type UploadedFile, type Faq, type InsertFaq, type Testimonial, type InsertTestimonial } from "../shared/schema.js";
+import { type User, type InsertUser, type Article, type InsertArticle, type SiteSettings, type VisitorStats, type TeamMember, type InsertTeamMember, type PricingPackage, type InsertPricingPackage, type ProjectDiscussion, type InsertProjectDiscussion, type BookingRequest, type InsertBookingRequest, type SocialMediaAnalytics, type InsertSocialMediaAnalytics, type SocialMediaIntegration, type InsertSocialMediaIntegration, type OneTimePricingRequest, type InsertOneTimePricingRequest, type CustomerInquiry, type InsertCustomerInquiry, type HeroContent, type InsertHeroContent, type AboutContent, type InsertAboutContent, type AboutValue, type InsertAboutValue, type ServicesContent, type InsertServicesContent, type ServiceItem, type InsertServiceItem, type SolutionsContent, type InsertSolutionsContent, type SolutionItem, type InsertSolutionItem, type PopupForm, type InsertPopupForm, type UploadedFile, type Faq, type InsertFaq, type Testimonial, type InsertTestimonial, type Lead, type InsertLead, type LeadUpdate } from "../shared/schema.js";
 import { randomUUID } from "crypto";
 import bcryptjs from "bcryptjs";
 export interface IStorage {
@@ -73,6 +73,7 @@ export interface IStorage {
   updateSocialMediaIntegration(platform: string, data: Partial<InsertSocialMediaIntegration>): Promise<SocialMediaIntegration>;
 
   getCustomerInquiries(): Promise<CustomerInquiry[]>;
+  getCustomerInquiry(id: string): Promise<CustomerInquiry | undefined>;
   createCustomerInquiry(inquiry: InsertCustomerInquiry): Promise<CustomerInquiry>;
   updateCustomerInquiry(id: string, inquiry: Partial<InsertCustomerInquiry>): Promise<CustomerInquiry | undefined>;
   deleteCustomerInquiry(id: string): Promise<boolean>;
@@ -125,6 +126,14 @@ export interface IStorage {
   createTestimonial(t: InsertTestimonial): Promise<Testimonial>;
   updateTestimonial(id: string, t: Partial<InsertTestimonial>): Promise<Testimonial | undefined>;
   deleteTestimonial(id: string): Promise<boolean>;
+
+  // Lead Management
+  getLeads(filters?: { status?: string; source?: string; assignedTo?: string; search?: string }): Promise<Lead[]>;
+  getLead(id: string): Promise<Lead | undefined>;
+  createLead(lead: InsertLead): Promise<Lead>;
+  updateLead(id: string, data: LeadUpdate): Promise<Lead | undefined>;
+  deleteLead(id: string): Promise<boolean>;
+  getLeadsByAssignee(userId: string): Promise<Lead[]>;
 }
 
 let storage: any;
@@ -164,6 +173,7 @@ export class MemStorage implements IStorage {
   private uploadedFiles: Map<string, UploadedFile>;
   private faqs: Map<string, Faq>;
   private testimonials: Map<string, Testimonial>;
+  private leads: Map<string, Lead>;
 
   constructor() {
     this.users = new Map();
@@ -192,6 +202,7 @@ export class MemStorage implements IStorage {
     this.uploadedFiles = new Map();
     this.faqs = new Map();
     this.testimonials = new Map();
+    this.leads = new Map();
     
     // Initialize default home page content
     this.initializeHomePageDefaults();
@@ -826,6 +837,10 @@ export class MemStorage implements IStorage {
     );
   }
 
+  async getCustomerInquiry(id: string): Promise<CustomerInquiry | undefined> {
+    return this.customerInquiries.get(id);
+  }
+
   async createCustomerInquiry(inquiry: InsertCustomerInquiry): Promise<CustomerInquiry> {
     const id = randomUUID();
     const newInquiry: CustomerInquiry = {
@@ -1332,6 +1347,59 @@ export class MemStorage implements IStorage {
 
   async deleteTestimonial(id: string): Promise<boolean> {
     return this.testimonials.delete(id);
+  }
+
+  // ---- Lead Management ----
+  async getLeads(filters?: { status?: string; source?: string; assignedTo?: string; search?: string }): Promise<Lead[]> {
+    let items = Array.from(this.leads.values()).sort(
+      (a, b) => new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime()
+    );
+    if (filters?.status) {
+      items = items.filter(l => l.status === filters.status);
+    }
+    if (filters?.source) {
+      items = items.filter(l => l.source === filters.source);
+    }
+    if (filters?.assignedTo) {
+      items = items.filter(l => l.assignedTo === filters.assignedTo);
+    }
+    if (filters?.search) {
+      const q = filters.search.toLowerCase();
+      items = items.filter(l =>
+        l.name.toLowerCase().includes(q) ||
+        l.email.toLowerCase().includes(q) ||
+        (l.company || "").toLowerCase().includes(q)
+      );
+    }
+    return items;
+  }
+
+  async getLead(id: string): Promise<Lead | undefined> {
+    return this.leads.get(id);
+  }
+
+  async createLead(data: InsertLead): Promise<Lead> {
+    const id = randomUUID();
+    const now = new Date().toISOString();
+    const lead: Lead = { ...data, id, status: data.status || "new", createdAt: now, updatedAt: now };
+    this.leads.set(id, lead);
+    return lead;
+  }
+
+  async updateLead(id: string, data: LeadUpdate): Promise<Lead | undefined> {
+    const existing = this.leads.get(id);
+    if (!existing) return undefined;
+    const updated: Lead = { ...existing, ...data, updatedAt: new Date().toISOString() };
+    this.leads.set(id, updated);
+    return updated;
+  }
+
+  async deleteLead(id: string): Promise<boolean> {
+    return this.leads.delete(id);
+  }
+
+  async getLeadsByAssignee(userId: string): Promise<Lead[]> {
+    return Array.from(this.leads.values()).filter(l => l.assignedTo === userId);
   }
 }
 

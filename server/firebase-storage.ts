@@ -12,7 +12,7 @@ import type {
   HeroContent, InsertHeroContent, AboutContent, InsertAboutContent,
   AboutValue, InsertAboutValue, ServicesContent, InsertServicesContent,
   ServiceItem, InsertServiceItem, SolutionsContent, InsertSolutionsContent,
-  SolutionItem, InsertSolutionItem,
+  SolutionItem, InsertSolutionItem, Lead, InsertLead, LeadUpdate,
 } from "../shared/schema.js";
 
 function getFirestore() {
@@ -29,8 +29,6 @@ function col(name: string) {
 }
 
 export class FirebaseStorage {
-  private resetCodes = new Map<string, { code: string; expiresAt: number }>();
-  private loginSessions = new Map<string, { userId: string; method: string; otp?: string; expiresAt: number }>();
   private initPromise: Promise<void>;
 
   constructor() {
@@ -68,8 +66,9 @@ export class FirebaseStorage {
     const snap = await col("users").where("username", "==", adminUsername).limit(1).get();
     if (snap.empty) {
       const hashed = bcryptjs.hashSync(adminPassword, 12);
-      await col("users").doc(randomUUID()).set({
-        id: randomUUID(),
+      const docId = randomUUID();
+      await col("users").doc(docId).set({
+        id: docId,
         username: adminUsername,
         password: hashed,
         email: adminEmail,
@@ -299,27 +298,34 @@ export class FirebaseStorage {
   // ---- Users ----
   async getUser(id: string) {
     const snap = await col("users").doc(id).get();
-    return snap.exists ? (snap.data() as User) : undefined;
+    if (!snap.exists) return undefined;
+    const data = snap.data() as User;
+    return { ...data, id: snap.id } as User;
   }
   async getUserByUsername(username: string) {
     const snap = await col("users").where("username", "==", username).limit(1).get();
-    return snap.empty ? undefined : (snap.docs[0].data() as User);
+    if (snap.empty) return undefined;
+    const data = snap.docs[0].data() as User;
+    return { ...data, id: snap.docs[0].id } as User;
   }
   async getUserByEmail(email: string) {
     const snap = await col("users").where("email", "==", email).limit(1).get();
-    return snap.empty ? undefined : (snap.docs[0].data() as User);
+    if (snap.empty) return undefined;
+    const data = snap.docs[0].data() as User;
+    return { ...data, id: snap.docs[0].id } as User;
   }
   async getAllUsers() {
     const snap = await col("users").get();
     return snap.docs.map(d => {
       const data = d.data() as User;
-      return { ...data, password: "[REDACTED]" } as User;
+      return { ...data, id: d.id, password: "[REDACTED]" } as User;
     });
   }
   async createUser(data: InsertUser) {
     const { password, ...safe } = data;
-    const user: User = { ...data, id: randomUUID(), role: data.role || "admin", permissions: data.permissions || "[]", createdAt: new Date().toISOString() } as User;
-    await col("users").doc(user.id).set(user);
+    const docId = randomUUID();
+    const user: User = { ...data, id: docId, role: data.role || "admin", permissions: data.permissions || "[]", createdAt: new Date().toISOString() } as User;
+    await col("users").doc(docId).set(user);
     return { ...user, password: "[REDACTED]" } as User;
   }
   async updateUser(id: string, data: Partial<InsertUser>) {
@@ -334,7 +340,8 @@ export class FirebaseStorage {
     const snap = await docRef.get();
     if (!snap.exists) return undefined;
     await docRef.update({ password: hashedPassword });
-    return (await docRef.get()).data() as User;
+    const updated = (await docRef.get()).data() as User;
+    return { ...updated, id: docRef.id } as User;
   }
   async deleteUser(id: string) {
     await col("users").doc(id).delete();
@@ -342,37 +349,50 @@ export class FirebaseStorage {
   }
 
   async storeResetCode(email: string, code: string) {
-    this.resetCodes.set(email, { code, expiresAt: Date.now() + 15 * 60 * 1000 });
-    setTimeout(() => this.resetCodes.delete(email), 15 * 60 * 1000);
+    const docRef = col("reset_codes").doc(email.toLowerCase());
+    await docRef.set({ code, expiresAt: Date.now() + 15 * 60 * 1000 });
   }
   async verifyResetCode(email: string, code: string) {
-    const stored = this.resetCodes.get(email);
-    if (!stored || Date.now() > stored.expiresAt) {
-      this.resetCodes.delete(email);
+    const snap = await col("reset_codes").doc(email.toLowerCase()).get();
+    if (!snap.exists) return false;
+    const stored = snap.data() as { code: string; expiresAt: number };
+    if (Date.now() > stored.expiresAt) {
+      await snap.ref.delete();
       return false;
     }
     return stored.code === code;
   }
   async clearResetCode(email: string) {
-    this.resetCodes.delete(email);
+    await col("reset_codes").doc(email.toLowerCase()).delete().catch(() => {});
+  }
+  async resetPasswordByEmail(email: string, hashedPassword: string): Promise<boolean> {
+    const snap = await col("users").where("email", "==", email).limit(1).get();
+    if (snap.empty) return false;
+    await snap.docs[0].ref.update({ password: hashedPassword });
+    await this.clearResetCode(email);
+    return true;
   }
 
   async storeLoginSession(sessionId: string, session: { userId: string; method: string; otp?: string }) {
-    this.loginSessions.set(sessionId, { ...session, expiresAt: Date.now() + 10 * 60 * 1000 });
-    setTimeout(() => this.loginSessions.delete(sessionId), 10 * 60 * 1000);
+    await col("login_sessions").doc(sessionId).set({
+      ...session,
+      expiresAt: Date.now() + 10 * 60 * 1000,
+    });
   }
 
   async getLoginSession(sessionId: string) {
-    const stored = this.loginSessions.get(sessionId);
-    if (!stored || Date.now() > stored.expiresAt) {
-      this.loginSessions.delete(sessionId);
+    const snap = await col("login_sessions").doc(sessionId).get();
+    if (!snap.exists) return undefined;
+    const stored = snap.data() as { userId: string; method: string; otp?: string; expiresAt: number };
+    if (Date.now() > stored.expiresAt) {
+      await snap.ref.delete();
       return undefined;
     }
     return { userId: stored.userId, method: stored.method, otp: stored.otp };
   }
 
   async deleteLoginSession(sessionId: string) {
-    this.loginSessions.delete(sessionId);
+    await col("login_sessions").doc(sessionId).delete().catch(() => {});
   }
 
   // ---- Articles ----
@@ -626,6 +646,10 @@ export class FirebaseStorage {
     const snap = await col("customer_inquiries").orderBy("createdAt", "desc").get();
     return snap.docs.map(d => d.data() as CustomerInquiry);
   }
+  async getCustomerInquiry(id: string) {
+    const snap = await col("customer_inquiries").doc(id).get();
+    return snap.exists ? (snap.data() as CustomerInquiry) : undefined;
+  }
   async createCustomerInquiry(data: InsertCustomerInquiry) {
     const doc: CustomerInquiry = { ...data, id: randomUUID(), createdAt: new Date().toISOString() } as CustomerInquiry;
     await col("customer_inquiries").doc(doc.id).set(doc);
@@ -804,4 +828,48 @@ export class FirebaseStorage {
   async createTestimonial(t: any) { return { ...t, id: randomUUID(), createdAt: new Date().toISOString() }; }
   async updateTestimonial(_id: string, t: any) { return t; }
   async deleteTestimonial(_id: string) { return true; }
+
+  // ---- Leads ----
+  async getLeads(filters?: { status?: string; source?: string; assignedTo?: string; search?: string }) {
+    let query: FirebaseFirestore.Query = col("leads").orderBy("createdAt", "desc");
+    if (filters?.status) query = query.where("status", "==", filters.status);
+    if (filters?.source) query = query.where("source", "==", filters.source);
+    if (filters?.assignedTo) query = query.where("assignedTo", "==", filters.assignedTo);
+    const snap = await query.get();
+    let leads = snap.docs.map(d => d.data() as Lead);
+    if (filters?.search) {
+      const q = filters.search.toLowerCase();
+      leads = leads.filter(l =>
+        l.name.toLowerCase().includes(q) ||
+        l.email.toLowerCase().includes(q) ||
+        (l.company || "").toLowerCase().includes(q)
+      );
+    }
+    return leads;
+  }
+  async getLead(id: string) {
+    const snap = await col("leads").doc(id).get();
+    return snap.exists ? (snap.data() as Lead) : undefined;
+  }
+  async createLead(data: InsertLead) {
+    const now = new Date().toISOString();
+    const lead: Lead = { ...data, id: randomUUID(), status: data.status || "new", createdAt: now, updatedAt: now } as Lead;
+    await col("leads").doc(lead.id).set(lead);
+    return lead;
+  }
+  async updateLead(id: string, data: LeadUpdate) {
+    const docRef = col("leads").doc(id);
+    const snap = await docRef.get();
+    if (!snap.exists) return undefined;
+    await docRef.update({ ...data, updatedAt: new Date().toISOString() } as any);
+    return (await docRef.get()).data() as Lead;
+  }
+  async deleteLead(id: string) {
+    await col("leads").doc(id).delete();
+    return true;
+  }
+  async getLeadsByAssignee(userId: string) {
+    const snap = await col("leads").where("assignedTo", "==", userId).get();
+    return snap.docs.map(d => d.data() as Lead);
+  }
 }

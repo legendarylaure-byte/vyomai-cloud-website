@@ -1,9 +1,9 @@
 import { useLocation, Link } from "wouter";
 import {
   LogOut, BarChart3, FileText, Users, DollarSign, BookOpen, MessageSquare, Settings,
-  Home, Share2, Mail, Menu, X, ChevronRight, Sparkles, UserCog, ExternalLink, Star as StarIcon
+  Home, Share2, Mail, Menu, X, ChevronRight, Sparkles, UserCog, ExternalLink, Star as StarIcon, TrendingUp
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { LaunchTimer } from "@/components/launch-timer";
@@ -28,13 +28,34 @@ export function AdminLayout({ children }: AdminLayoutProps) {
   const [location] = useLocation();
   const [, setLocation] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [userPermissions, setUserPermissions] = useState<string[]>([]);
+  const [userRole, setUserRole] = useState<string>("");
+
+  useEffect(() => {
+    const token = localStorage.getItem("vyomai-admin-token");
+    if (token) {
+      fetch("/api/admin/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      }).then(res => res.json()).then(data => {
+        if (data.permissions) {
+          setUserPermissions(JSON.parse(data.permissions));
+        }
+        if (data.role) setUserRole(data.role);
+      }).catch(() => {});
+    }
+  }, []);
+
+  const hasPermission = (moduleId: string) => {
+    if (userRole === "vyom_admin") return true;
+    return userPermissions.includes(moduleId);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem("vyomai-admin-token");
     setLocation("/admin");
   };
 
-  const menuGroups: MenuGroup[] = [
+  const allMenuGroups: MenuGroup[] = [
     {
       title: "Overview",
       items: [
@@ -54,6 +75,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       items: [
         { label: "Pricing Plans", href: "/admin/pricing", icon: DollarSign },
         { label: "Communications", href: "/admin/communications", icon: MessageSquare },
+        { label: "Leads", href: "/admin/leads", icon: TrendingUp },
       ],
     },
     {
@@ -74,6 +96,33 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       ],
     },
   ];
+
+  // Filter menu groups based on permissions
+  const moduleKeyMap: Record<string, string> = {
+    dashboard: "dashboard",
+    "homepage-content": "homepage",
+    articles: "articles",
+    team: "team",
+    pricing: "pricing",
+    communications: "communications",
+    leads: "leads",
+    "social-media-integration": "social",
+    analytics: "dashboard",
+    testimonials: "dashboard",
+    users: "users",
+    "popup-forms": "popup",
+    faq: "dashboard",
+    settings: "settings",
+  };
+
+  const menuGroups = allMenuGroups.map(group => ({
+    ...group,
+    items: group.items.filter(item => {
+      const key = item.href.replace("/admin/", "").split("/")[0];
+      const moduleId = moduleKeyMap[key] || key;
+      return hasPermission(moduleId);
+    }),
+  })).filter(group => group.items.length > 0);
 
   const allItems = menuGroups.flatMap(group => group.items);
   const currentPage = allItems.find(item => location?.includes(item.href));

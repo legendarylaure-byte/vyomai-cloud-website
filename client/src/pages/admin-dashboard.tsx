@@ -18,6 +18,8 @@ import { SocialMediaIntegrationPage } from "@/pages/admin/social-media-integrati
 import { FaqPage } from "@/pages/admin/faq";
 import { TestimonialsPage } from "@/pages/admin/testimonials";
 import { AnalyticsPage } from "@/pages/admin/analytics";
+import { LeadsPage } from "@/pages/admin/leads";
+import { LeadDetailPage } from "@/pages/admin/lead-detail";
 
 function LoadingSpinner() {
   return (
@@ -60,6 +62,8 @@ export default function AdminDashboardRouter() {
             <Route path="/admin/popup-forms" component={PopupFormsPage} />
             <Route path="/admin/email-settings" component={SettingsPage} />
             <Route path="/admin/settings" component={SettingsPage} />
+            <Route path="/admin/leads" component={LeadsPage} />
+            <Route path="/admin/lead/:id" component={LeadDetailPage} />
             <Route path="/admin" component={AdminDashboard} />
           </Switch>
         </AdminLayout>
