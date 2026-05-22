@@ -50,8 +50,8 @@ function escapeHtml(text: string): string {
 async function sendViaSMTP(options: EmailOptions, config: EmailConfig): Promise<EmailResult> {
   try {
     const resendApiKey = process.env.RESEND_API_KEY;
-    const effectiveHost = config.smtpHost || (resendApiKey ? "smtp.resend.com" : undefined);
-    const effectiveUser = config.smtpUser || (resendApiKey ? "resend" : undefined);
+    const effectiveHost = resendApiKey ? "smtp.resend.com" : (config.smtpHost || undefined);
+    const effectiveUser = resendApiKey ? "resend" : (config.smtpUser || undefined);
     const smtpPassword = resendApiKey || config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
     const passwordSource = resendApiKey ? "RESEND_API_KEY env" : config.smtpPassword ? "config.smtpPassword (from DB)" : process.env.EMAIL_SMTP_PASSWORD ? "EMAIL_SMTP_PASSWORD env" : "empty";
 
@@ -98,8 +98,8 @@ export async function sendEmailWithProvider(
 export async function testProvider(provider: EmailProvider, config: EmailConfig): Promise<EmailResult> {
   try {
     const resendApiKey = process.env.RESEND_API_KEY;
-    const effectiveHost = config.smtpHost || (resendApiKey ? "smtp.resend.com" : undefined);
-    const effectiveUser = config.smtpUser || (resendApiKey ? "resend" : undefined);
+    const effectiveHost = resendApiKey ? "smtp.resend.com" : (config.smtpHost || undefined);
+    const effectiveUser = resendApiKey ? "resend" : (config.smtpUser || undefined);
     const smtpPassword = resendApiKey || config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
 
     if (!effectiveHost || !effectiveUser || !smtpPassword) {
