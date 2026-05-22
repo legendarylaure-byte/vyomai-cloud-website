@@ -86,7 +86,7 @@ async function getEmailConfig(): Promise<EmailConfig> {
       smtpHost: settings.smtpHost || process.env.SMTP_HOST,
       smtpPort: settings.smtpPort || process.env.SMTP_PORT || "587",
       smtpUser: settings.smtpUser || process.env.SMTP_USER,
-      smtpPassword: settings.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || process.env.SMTP_PASSWORD,
+      smtpPassword: settings.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || process.env.SMTP_PASSWORD || process.env.RESEND_API_KEY,
       smtpSecure: settings.smtpSecure !== undefined ? settings.smtpSecure : process.env.SMTP_SECURE === "true",
       sendgridFromEmail: settings.sendgridFromEmail,
       providerPriority: providerPriority.length > 0 ? providerPriority : ["smtp", "gmail", "sendgrid"],

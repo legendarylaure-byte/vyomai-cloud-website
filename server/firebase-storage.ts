@@ -194,7 +194,8 @@ export class FirebaseStorage {
       { title: "AI-Powered Analytics: A Quick Overview", content: "Learn how AI-powered analytics can transform raw data into actionable insights.", type: "video", thumbnailUrl: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&q=80", mediaUrl: "https://www.youtube.com/embed/H71mC-Fv8Fk", published: true },
     ];
     for (const a of articles) {
-      await col("articles").doc(randomUUID()).set({ id: randomUUID(), ...a, createdAt: new Date().toISOString() });
+      const id = randomUUID();
+      await col("articles").doc(id).set({ id, ...a, createdAt: new Date().toISOString() });
     }
   }
 

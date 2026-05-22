@@ -64,6 +64,7 @@ export function ArticlesPage() {
   const [aiSearchResults, setAiSearchResults] = useState<Set<string> | null>(null);
   const [isSearchingAi, setIsSearchingAi] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const { data: articles = [], isLoading } = useQuery<Article[]>({
     queryKey: ["/api/admin/articles"],
@@ -151,33 +152,26 @@ export function ArticlesPage() {
 
   const togglePublishMutation = useMutation({
     mutationFn: async (article: Article) => {
+      setTogglingId(article.id);
       const token = localStorage.getItem("vyomai-admin-token");
-      const updateData = {
-        title: article.title,
-        content: article.content,
-        type: article.type,
-        mediaUrl: article.mediaUrl || "",
-        thumbnailUrl: article.thumbnailUrl || "",
-        published: !article.published
-      };
       return apiRequest(
         "PUT",
         `/api/admin/articles/${article.id}`,
-        updateData,
+        { published: !article.published },
         { Authorization: `Bearer ${token}` }
       );
     },
     onSuccess: (_, article) => {
       queryClient.invalidateQueries({ queryKey: ["/api/admin/articles"] });
-      const isNowPublished = !article.published;
       toast({
-        title: isNowPublished ? "Article Published ✓" : "Article Unpublished",
-        description: isNowPublished ? "Now visible on your website" : "Hidden from your website",
+        title: article.published ? "Article Unpublished" : "Article Published ✓",
+        description: article.published ? "Hidden from your website" : "Now visible on your website",
       });
     },
     onError: () => {
       toast({ title: "Error updating article", description: "Please try again", variant: "destructive" });
     },
+    onSettled: () => setTogglingId(null),
   });
 
   const aiGenerateMutation = useMutation({
@@ -1230,7 +1224,7 @@ export function ArticlesPage() {
                           <Switch
                             checked={article.published}
                             onCheckedChange={() => togglePublishMutation.mutate(article)}
-                            disabled={togglePublishMutation.isPending}
+                            disabled={togglingId === article.id}
                           />
                           <span className={`text-xs font-medium min-w-[4rem] ${article.published ? "text-green-600" : "text-yellow-600"}`}>
                             {article.published ? "Published" : "Draft"}
@@ -1286,7 +1280,7 @@ export function ArticlesPage() {
                         variant="ghost"
                         size="sm"
                         onClick={() => togglePublishMutation.mutate(article)}
-                        disabled={togglePublishMutation.isPending}
+                        disabled={togglingId === article.id}
                         data-testid={`button-toggle-publish-${article.id}`}
                         className={`gap-1.5 transition-colors ${
                           article.published
@@ -1295,7 +1289,7 @@ export function ArticlesPage() {
                         }`}
                         title={article.published ? "Unpublish article" : "Publish article"}
                       >
-                        {togglePublishMutation.isPending ? (
+                        {togglingId === article.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
                         ) : article.published ? (
                           <Eye className="w-4 h-4" />
