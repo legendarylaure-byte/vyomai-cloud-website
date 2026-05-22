@@ -78,9 +78,9 @@ async function getEmailConfig(): Promise<EmailConfig> {
       fromName: settings.emailFromName || "VyomAi",
       fromAddress: settings.emailFromAddress || "info@vyomai.cloud",
       replyTo: settings.emailReplyTo,
-      smtpHost: settings.smtpHost || "smtp.resend.com",
+      smtpHost: process.env.RESEND_API_KEY ? "smtp.resend.com" : (settings.smtpHost || "smtp.resend.com"),
       smtpPort: settings.smtpPort || "587",
-      smtpUser: settings.smtpUser || "resend",
+      smtpUser: process.env.RESEND_API_KEY ? "resend" : (settings.smtpUser || "resend"),
       smtpPassword: process.env.RESEND_API_KEY || settings.smtpPassword || process.env.EMAIL_SMTP_PASSWORD,
       smtpSecure: settings.smtpSecure !== undefined ? settings.smtpSecure : false,
     };
