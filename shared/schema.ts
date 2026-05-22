@@ -149,20 +149,17 @@ export const siteSettingsSchema = z.object({
   // AI Greeting Settings
   aiGreetingEnabled: z.boolean().optional().default(false),
   aiGreetingText: z.string().max(1000).optional().default(""),
-  // Email Provider Configuration
-  emailProvider: z.enum(["gmail", "smtp", "sendgrid"]).optional().default("smtp"),
+  // Email Provider Configuration (Resend SMTP)
+  emailProvider: z.enum(["smtp"]).optional().default("smtp"),
   emailFromName: z.string().max(100).optional().default("VyomAi"),
   emailFromAddress: z.string().email().optional().default("info@vyomai.cloud"),
   emailReplyTo: z.string().email().optional(),
-  // SMTP Settings
+  // SMTP Settings (Resend)
   smtpHost: z.string().max(255).optional(),
   smtpPort: z.string().max(10).optional().default("587"),
   smtpUser: z.string().max(255).optional(),
   smtpPassword: z.string().max(255).optional(),
   smtpSecure: z.boolean().optional().default(false),
-  // SendGrid Settings
-  sendgridFromEmail: z.string().email().optional(),
-  emailProviderPriority: z.string().max(200).optional().default("smtp,gmail,sendgrid"),
   emailFeaturesEnabled: z.boolean().optional().default(true),
 });
 

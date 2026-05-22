@@ -57,14 +57,14 @@ export function SettingsPage() {
     if (settings?.welcomePopupAnimationStyle) setPopupAnimationStyle(settings.welcomePopupAnimationStyle);
     if (settings?.welcomePopupDismissable !== undefined) setPopupDismissable(settings.welcomePopupDismissable);
 
-    // Sync SMTP settings
+    // Sync Resend SMTP settings
     if (settings) {
       setSmtpConfig(prev => ({
         ...prev,
         host: settings.smtpHost || "",
         port: settings.smtpPort || "587",
         user: settings.smtpUser || "",
-        password: settings.smtpPassword || "", 
+        password: settings.smtpPassword || "",
         secure: settings.smtpSecure || false
       }));
     }
@@ -125,12 +125,11 @@ export function SettingsPage() {
 
   const handleSaveConfig = () => {
     emailConfigMutation.mutate({
-      smtpHost: smtpConfig.host,
-      smtpPort: smtpConfig.port,
-      smtpUser: smtpConfig.user,
+      smtpHost: smtpConfig.host || "smtp.resend.com",
+      smtpPort: smtpConfig.port || "587",
+      smtpUser: smtpConfig.user || "resend",
       smtpPassword: smtpConfig.password,
       smtpSecure: smtpConfig.secure,
-      // Create defaults for others
       emailProvider: "smtp",
       emailFeaturesEnabled: true
     });
@@ -250,70 +249,44 @@ export function SettingsPage() {
                       <Settings className="w-3.5 h-3.5 text-purple-700" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                      <DialogTitle>Email Server Settings</DialogTitle>
+                      <DialogTitle>Resend API Configuration</DialogTitle>
                       <DialogDescription>
-                        Configure your SMTP provider details here.
+                        Enter your Resend API key to enable email sending via Resend SMTP.
                       </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="host" className="text-right">
+                        <Label className="text-right text-xs text-muted-foreground">
                           Host
                         </Label>
-                        <Input
-                          id="host"
-                          placeholder="smtp.example.com"
-                          className="col-span-3"
-                          value={smtpConfig.host}
-                          onChange={(e) => setSmtpConfig(prev => ({ ...prev, host: e.target.value }))}
-                        />
+                        <div className="col-span-3 text-sm font-mono text-muted-foreground">smtp.resend.com</div>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="port" className="text-right">
+                        <Label className="text-right text-xs text-muted-foreground">
                           Port
                         </Label>
-                        <Input
-                          id="port"
-                          placeholder="587"
-                          className="col-span-3"
-                          value={smtpConfig.port}
-                          onChange={(e) => setSmtpConfig(prev => ({ ...prev, port: e.target.value }))}
-                        />
+                        <div className="col-span-3 text-sm font-mono text-muted-foreground">587</div>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="username" className="text-right">
+                        <Label className="text-right text-xs text-muted-foreground">
                           User
                         </Label>
-                        <Input
-                          id="username"
-                          placeholder="email@domain.com"
-                          className="col-span-3"
-                          value={smtpConfig.user}
-                          onChange={(e) => setSmtpConfig(prev => ({ ...prev, user: e.target.value }))}
-                        />
+                        <div className="col-span-3 text-sm font-mono text-muted-foreground">resend</div>
                       </div>
                       <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="password" className="text-right">
-                          Pass
+                          API Key
                         </Label>
                         <Input
                           id="password"
                           type="password"
-                          placeholder="••••••••"
+                          placeholder="re_..."
                           className="col-span-3"
                           value={smtpConfig.password}
                           onChange={(e) => setSmtpConfig(prev => ({ ...prev, password: e.target.value }))}
                         />
-                      </div>
-                      <div className="flex items-center justify-end gap-2">
-                         <Label htmlFor="secure" className="text-xs text-gray-500">Secure (SSL)</Label>
-                         <Switch 
-                            id="secure"
-                            checked={smtpConfig.secure}
-                            onCheckedChange={(c) => setSmtpConfig(prev => ({ ...prev, secure: c }))}
-                         />
                       </div>
                     </div>
                     <DialogFooter>
@@ -329,7 +302,7 @@ export function SettingsPage() {
                 <div className="w-2 h-2 rounded-full bg-purple-500" />
                 <span className="text-lg font-bold text-gray-900">Settings</span>
               </div>
-              <p className="text-xs text-purple-600">SMTP / SendGrid Keys</p>
+              <p className="text-xs text-purple-600">Resend API Key</p>
             </div>
           </div>
 

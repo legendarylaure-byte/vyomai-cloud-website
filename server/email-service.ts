@@ -73,23 +73,16 @@ async function getEmailConfig(): Promise<EmailConfig> {
   try {
     const settings = await storage.getSettings();
 
-    const providerPriority = (settings.emailProviderPriority || "smtp,gmail,sendgrid")
-      .split(",")
-      .map((p: string) => p.trim() as EmailProvider)
-      .filter((p: string) => ["gmail", "smtp", "sendgrid"].includes(p));
-
     cachedConfig = {
-      provider: (settings.emailProvider as EmailProvider) || "smtp",
+      provider: "smtp",
       fromName: settings.emailFromName || "VyomAi",
       fromAddress: settings.emailFromAddress || "info@vyomai.cloud",
       replyTo: settings.emailReplyTo,
-      smtpHost: settings.smtpHost || process.env.SMTP_HOST,
-      smtpPort: settings.smtpPort || process.env.SMTP_PORT || "587",
-      smtpUser: settings.smtpUser || process.env.SMTP_USER,
-      smtpPassword: settings.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || process.env.SMTP_PASSWORD || process.env.RESEND_API_KEY,
-      smtpSecure: settings.smtpSecure !== undefined ? settings.smtpSecure : process.env.SMTP_SECURE === "true",
-      sendgridFromEmail: settings.sendgridFromEmail,
-      providerPriority: providerPriority.length > 0 ? providerPriority : ["smtp", "gmail", "sendgrid"],
+      smtpHost: settings.smtpHost || "smtp.resend.com",
+      smtpPort: settings.smtpPort || "587",
+      smtpUser: settings.smtpUser || "resend",
+      smtpPassword: settings.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || process.env.RESEND_API_KEY,
+      smtpSecure: settings.smtpSecure !== undefined ? settings.smtpSecure : false,
     };
     configLastFetched = now;
     return cachedConfig;
@@ -99,11 +92,10 @@ async function getEmailConfig(): Promise<EmailConfig> {
       provider: "smtp",
       fromName: "VyomAi",
       fromAddress: "info@vyomai.cloud",
-      smtpHost: process.env.SMTP_HOST || (resendKey ? "smtp.resend.com" : undefined),
-      smtpPort: process.env.SMTP_PORT || "587",
-      smtpUser: process.env.SMTP_USER || (resendKey ? "resend" : undefined),
-      smtpPassword: process.env.EMAIL_SMTP_PASSWORD || process.env.SMTP_PASSWORD || resendKey,
-      providerPriority: ["smtp", "gmail", "sendgrid"],
+      smtpHost: "smtp.resend.com",
+      smtpPort: "587",
+      smtpUser: "resend",
+      smtpPassword: process.env.EMAIL_SMTP_PASSWORD || resendKey,
     };
   }
 }
@@ -126,29 +118,15 @@ export async function sendEmailWithResult(options: EmailOptions): Promise<EmailR
 
 export async function testEmailProvider(provider?: EmailProvider): Promise<EmailResult> {
   const config = await getEmailConfig();
-  const providerToTest = provider || config.provider;
-  return testProvider(providerToTest, config);
+  return testProvider(provider || "smtp", config);
 }
 
-export async function getProviderStatuses(): Promise<Record<EmailProvider, { available: boolean; error?: string }>> {
+export async function getProviderStatuses(): Promise<{ smtp: { available: boolean; error?: string } }> {
   const config = await getEmailConfig();
-  const results: Record<EmailProvider, { available: boolean; error?: string }> = {
-    gmail: { available: false },
-    smtp: { available: false },
-    sendgrid: { available: false },
+  const result = await testProvider("smtp", config);
+  return {
+    smtp: { available: result.success, error: result.error },
   };
-
-  const tests = await Promise.all([
-    testProvider("gmail", config),
-    testProvider("smtp", config),
-    testProvider("sendgrid", config),
-  ]);
-
-  results.gmail = { available: tests[0].success, error: tests[0].error };
-  results.smtp = { available: tests[1].success, error: tests[1].error };
-  results.sendgrid = { available: tests[2].success, error: tests[2].error };
-
-  return results;
 }
 
 export async function sendContactFormEmail(data: {
@@ -298,52 +276,11 @@ export async function sendEmailWithAttachment(options: {
 
   try {
     const nodemailer = await import("nodemailer");
-    const smtpPassword = process.env.EMAIL_SMTP_PASSWORD;
+    const smtpPassword = process.env.EMAIL_SMTP_PASSWORD || process.env.RESEND_API_KEY;
 
     if (!config.smtpHost || !config.smtpUser || !smtpPassword) {
-      if (!process.env.REPLIT_CONNECTORS_HOSTNAME) {
-        console.error("No email provider available for attachments");
-        return false;
-      }
-
-      const { getUncachableGmailClient } = await import("./gmail-client.js");
-      const gmail = await getUncachableGmailClient();
-
-      const boundary = `----WebKitFormBoundary${Math.random().toString(36).substr(2, 9)}`;
-
-      const emailContent = [
-        `To: ${options.to}`,
-        `Subject: ${options.subject}`,
-        `MIME-Version: 1.0`,
-        `Content-Type: multipart/mixed; boundary="${boundary}"`,
-        ``,
-        `--${boundary}`,
-        `Content-Type: text/html; charset=utf-8`,
-        `Content-Transfer-Encoding: quoted-printable`,
-        ``,
-        options.html,
-        ``,
-        `--${boundary}`,
-        `Content-Type: application/pdf; name="${options.attachmentFilename}"`,
-        `Content-Disposition: attachment; filename="${options.attachmentFilename}"`,
-        `Content-Transfer-Encoding: base64`,
-        ``,
-        options.attachmentBuffer.toString("base64").match(/.{1,76}/g)?.join("\n") || "",
-        ``,
-        `--${boundary}--`
-      ].join("\n");
-
-      const encodedMessage = Buffer.from(emailContent)
-        .toString("base64")
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_");
-
-      await gmail.users.messages.send({
-        userId: "me",
-        requestBody: { raw: encodedMessage },
-      });
-
-      return true;
+      console.error("No email provider available for attachments");
+      return false;
     }
 
     const transporter = nodemailer.default.createTransport({
