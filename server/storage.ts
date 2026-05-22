@@ -227,6 +227,7 @@ export class MemStorage implements IStorage {
       password: hashedPassword,
       email: adminEmail,
       twoFactorEnabled: false,
+      twoFactorMethod: "none",
     });
     
     // Test user creation removed for security - removed testuser with hardcoded password

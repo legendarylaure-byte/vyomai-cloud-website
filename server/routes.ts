@@ -552,7 +552,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         return res.status(401).json({ error: "Invalid credentials" });
       }
 
-      const method = user.twoFactorMethod || (user.twoFactorEnabled ? "totp" : "none");
+      const method = user.twoFactorEnabled ? (user.twoFactorMethod || "totp") : "none";
 
       if (method !== "none") {
         const sessionId = randomUUID();
