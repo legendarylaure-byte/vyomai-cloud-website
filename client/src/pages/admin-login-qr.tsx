@@ -695,15 +695,6 @@ export default function AdminLoginQR() {
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.5 }}
                   >
-                    <p className="text-xs text-muted-foreground">
-                      New to VyomAi?{" "}
-                      <button
-                        onClick={() => setLocation("/admin/signup")}
-                        className="text-purple-400 hover:text-purple-300 underline underline-offset-2 transition-colors"
-                      >
-                        Create Account
-                      </button>
-                    </p>
                   </motion.div>
                 </motion.div>
               )}
