@@ -75,18 +75,25 @@ export class FirebaseStorage {
         role: "vyom_admin",
         permissions: "[]",
         twoFactorEnabled: false,
+        twoFactorMethod: "none",
         createdAt: new Date().toISOString(),
       });
     } else {
       const existing = snap.docs[0];
       const data = existing.data();
       const updates: Record<string, any> = {};
-      if (!bcryptjs.compareSync(adminPassword, data.password || "")) {
+      const passwordChanged = !bcryptjs.compareSync(adminPassword, data.password || "");
+      if (passwordChanged) {
         updates.password = bcryptjs.hashSync(adminPassword, 12);
-      }
-      if (data.twoFactorEnabled) {
-        updates.twoFactorEnabled = false;
-        updates.twoFactorSecret = null;
+        // If password changed, reset 2FA to prevent lockout
+        if (data.twoFactorEnabled) {
+          updates.twoFactorEnabled = false;
+          updates.twoFactorSecret = null;
+          updates.twoFactorMethod = "none";
+        }
+      } else if (!data.twoFactorEnabled && data.twoFactorMethod && data.twoFactorMethod !== "none") {
+        // Clean up orphaned twoFactorMethod (enabled=false but method still set)
+        updates.twoFactorMethod = "none";
       }
       if (data.role !== "vyom_admin") {
         updates.role = "vyom_admin";
