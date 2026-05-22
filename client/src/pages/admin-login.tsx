@@ -476,16 +476,6 @@ export default function AdminLogin() {
                 )}
               </DialogContent>
             </Dialog>
-
-            <p className="text-xs text-muted-foreground text-center">
-              Don't have an account?{" "}
-              <button
-                onClick={() => setLocation("/admin/signup")}
-                className="text-primary hover:underline underline-offset-2"
-              >
-                Sign up
-              </button>
-            </p>
           </div>
         </CardContent>
       </Card>
