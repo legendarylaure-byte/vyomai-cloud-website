@@ -281,7 +281,6 @@ export class MemStorage implements IStorage {
       smtpPort: "587",
       smtpUser: "resend",
       smtpSecure: false,
-      emailProviderPriority: "smtp,gmail,sendgrid",
       emailFeaturesEnabled: true,
       socialMediaEnabled: {
         linkedin: true,

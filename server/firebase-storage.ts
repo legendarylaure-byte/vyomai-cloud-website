@@ -141,7 +141,6 @@ export class FirebaseStorage {
         smtpPort: "587",
         smtpUser: "resend",
         smtpSecure: false,
-        emailProviderPriority: "smtp,gmail,sendgrid",
         emailFeaturesEnabled: true,
         socialMediaEnabled: { linkedin: true, instagram: true, facebook: true, whatsapp: true, viber: true, youtube: true },
         exchangeRates: { USD: 1, EUR: 0.92, INR: 83.12, NPR: 132.5 },

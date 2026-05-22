@@ -967,8 +967,6 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
           smtpPort: settings.smtpPort || "587",
           smtpUser: settings.smtpUser,
           smtpSecure: settings.smtpSecure || false,
-          sendgridFromEmail: settings.sendgridFromEmail,
-          providerPriority: settings.emailProviderPriority || "smtp,gmail,sendgrid",
           emailFeaturesEnabled: settings.emailFeaturesEnabled !== false,
         },
       });
@@ -991,8 +989,6 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         smtpUser,
         smtpPassword,
         smtpSecure,
-        sendgridFromEmail,
-        emailProviderPriority,
         emailFeaturesEnabled,
       } = req.body;
 
@@ -1006,8 +1002,6 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         smtpUser,
         smtpPassword,
         smtpSecure,
-        sendgridFromEmail,
-        emailProviderPriority,
         emailFeaturesEnabled,
       } as any);
 
@@ -1026,7 +1020,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       const { testEmailProvider } = await import("./email-service.js");
       const { provider } = req.body;
 
-      if (!provider || !["gmail", "smtp", "sendgrid"].includes(provider)) {
+      if (!provider || !["smtp"].includes(provider)) {
         return res.status(400).json({ error: "Invalid provider" });
       }
 
