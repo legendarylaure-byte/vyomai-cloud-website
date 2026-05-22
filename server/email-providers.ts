@@ -52,7 +52,7 @@ async function sendViaSMTP(options: EmailOptions, config: EmailConfig): Promise<
     const resendApiKey = process.env.RESEND_API_KEY;
     const effectiveHost = config.smtpHost || (resendApiKey ? "smtp.resend.com" : undefined);
     const effectiveUser = config.smtpUser || (resendApiKey ? "resend" : undefined);
-    const smtpPassword = config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || resendApiKey || "";
+    const smtpPassword = resendApiKey || config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
 
     if (!effectiveHost || !effectiveUser || !smtpPassword) {
       return { success: false, error: "SMTP configuration incomplete" };
@@ -97,7 +97,7 @@ export async function testProvider(provider: EmailProvider, config: EmailConfig)
     const resendApiKey = process.env.RESEND_API_KEY;
     const effectiveHost = config.smtpHost || (resendApiKey ? "smtp.resend.com" : undefined);
     const effectiveUser = config.smtpUser || (resendApiKey ? "resend" : undefined);
-    const smtpPassword = config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || resendApiKey || "";
+    const smtpPassword = resendApiKey || config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
 
     if (!effectiveHost || !effectiveUser || !smtpPassword) {
       return { success: false, error: "SMTP configuration incomplete" };
