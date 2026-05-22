@@ -1065,6 +1065,68 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
     }
   });
 
+  // Direct Resend SMTP test (bypasses config cache and DB settings)
+  app.post("/api/admin/test-resend-direct", authMiddleware, async (req, res) => {
+    try {
+      const nodemailer = await import("nodemailer");
+      const apiKey = process.env.RESEND_API_KEY;
+      if (!apiKey) {
+        return res.status(400).json({ error: "RESEND_API_KEY env var is not set" });
+      }
+      const transporter = nodemailer.default.createTransport({
+        host: "smtp.resend.com",
+        port: 587,
+        secure: false,
+        auth: { user: "resend", pass: apiKey },
+      });
+      await transporter.verify();
+      res.json({ success: true, message: "Direct SMTP connection to smtp.resend.com OK" });
+    } catch (error: any) {
+      res.status(500).json({ success: false, error: error.message || "Direct SMTP test failed" });
+    }
+  });
+
+  // Email diagnostic endpoint
+  app.get("/api/admin/email-diagnostic", authMiddleware, async (req, res) => {
+    try {
+      const { getProviderStatuses } = await import("./email-service.js");
+      const settings = await storage.getSettings();
+      const statuses = await getProviderStatuses();
+
+      const envStatus = {
+        RESEND_API_KEY: process.env.RESEND_API_KEY ? {
+          set: true,
+          prefix: process.env.RESEND_API_KEY.substring(0, 5),
+          suffix: process.env.RESEND_API_KEY.slice(-4),
+          length: process.env.RESEND_API_KEY.length,
+        } : { set: false },
+        EMAIL_SMTP_PASSWORD: !!process.env.EMAIL_SMTP_PASSWORD,
+        SMTP_PASSWORD: !!process.env.SMTP_PASSWORD,
+        SMTP_HOST: !!process.env.SMTP_HOST,
+        NODE_ENV: process.env.NODE_ENV,
+      };
+
+      const dbSettings = {
+        smtpHost: settings.smtpHost,
+        smtpPort: settings.smtpPort,
+        smtpUser: settings.smtpUser,
+        smtpPasswordSet: !!settings.smtpPassword,
+        smtpPasswordLength: settings.smtpPassword ? settings.smtpPassword.length : 0,
+        smtpSecure: settings.smtpSecure,
+        emailFromAddress: settings.emailFromAddress,
+        emailFromName: settings.emailFromName,
+      };
+
+      res.json({
+        env: envStatus,
+        db: dbSettings,
+        smtpTest: statuses.smtp,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message || "Diagnostic failed" });
+    }
+  });
+
   // Generic send email endpoint for admin
   const sendEmailSchema = z.object({
     to: z.string().email("Valid email address required"),
