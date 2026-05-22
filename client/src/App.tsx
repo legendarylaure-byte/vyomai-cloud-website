@@ -63,7 +63,7 @@ function App() {
   );
 
   if (googleClientId) {
-    return <GoogleOAuthProvider clientId={googleClientId}>{content}</GoogleOAuthProvider>;
+    return <GoogleOAuthProvider clientId={googleClientId} useOneTap={false} cancel_on_tap_outside={false}>{content}</GoogleOAuthProvider>;
   }
 
   return content;

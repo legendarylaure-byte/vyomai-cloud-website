@@ -574,6 +574,7 @@ export default function AdminLoginQR() {
                           theme="outline"
                           shape="rectangular"
                           text="signin_with"
+                          itp_support={true}
                         />
                       </div>
                     </motion.div>

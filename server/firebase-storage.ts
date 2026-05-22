@@ -81,6 +81,9 @@ export class FirebaseStorage {
       const existing = snap.docs[0];
       const data = existing.data();
       const updates: Record<string, any> = {};
+      if (!bcryptjs.compareSync(adminPassword, data.password || "")) {
+        updates.password = bcryptjs.hashSync(adminPassword, 12);
+      }
       if (data.twoFactorEnabled) {
         updates.twoFactorEnabled = false;
         updates.twoFactorSecret = null;
@@ -309,10 +312,12 @@ export class FirebaseStorage {
     return { ...data, id: snap.docs[0].id } as User;
   }
   async getUserByEmail(email: string) {
-    const snap = await col("users").where("email", "==", email).limit(1).get();
-    if (snap.empty) return undefined;
-    const data = snap.docs[0].data() as User;
-    return { ...data, id: snap.docs[0].id } as User;
+    const snap = await col("users").get();
+    const lowerEmail = email.toLowerCase();
+    const doc = snap.docs.find(d => (d.data().email || "").toLowerCase() === lowerEmail);
+    if (!doc) return undefined;
+    const data = doc.data() as User;
+    return { ...data, id: doc.id } as User;
   }
   async getAllUsers() {
     const snap = await col("users").get();
@@ -324,7 +329,7 @@ export class FirebaseStorage {
   async createUser(data: InsertUser) {
     const { password, ...safe } = data;
     const docId = randomUUID();
-    const user: User = { ...data, id: docId, role: data.role || "admin", permissions: data.permissions || "[]", createdAt: new Date().toISOString() } as User;
+    const user: User = { ...data, id: docId, role: data.role || "admin", permissions: data.permissions || "[]", email: data.email?.toLowerCase(), createdAt: new Date().toISOString() } as User;
     await col("users").doc(docId).set(user);
     return { ...user, password: "[REDACTED]" } as User;
   }
@@ -332,7 +337,9 @@ export class FirebaseStorage {
     const docRef = col("users").doc(id);
     const snap = await docRef.get();
     if (!snap.exists) return undefined;
-    await docRef.update(data as any);
+    const toUpdate = { ...data } as any;
+    if (toUpdate.email) toUpdate.email = toUpdate.email.toLowerCase();
+    await docRef.update(toUpdate);
     return (await docRef.get()).data() as User;
   }
   async updateUserPassword(id: string, hashedPassword: string) {

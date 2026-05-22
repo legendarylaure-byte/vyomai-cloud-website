@@ -127,8 +127,7 @@ export default function AdminLogin() {
   const onSubmit = async (data: LoginFormData) => {
     setIsSubmitting(true);
     try {
-      const response = await apiRequest("POST", "/api/admin/login", data);
-      const result = await response.json();
+      const result = await apiRequest("POST", "/api/admin/login", data);
       if (result.success) {
         localStorage.setItem("vyomai-admin-token", result.token);
         toast({
@@ -137,10 +136,10 @@ export default function AdminLogin() {
         });
         setLocation("/admin/dashboard");
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Login Failed",
-        description: "Invalid username or password.",
+        description: error?.message || "Invalid credentials",
         variant: "destructive",
       });
     } finally {
