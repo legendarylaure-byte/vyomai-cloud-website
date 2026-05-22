@@ -53,6 +53,9 @@ async function sendViaSMTP(options: EmailOptions, config: EmailConfig): Promise<
     const effectiveHost = config.smtpHost || (resendApiKey ? "smtp.resend.com" : undefined);
     const effectiveUser = config.smtpUser || (resendApiKey ? "resend" : undefined);
     const smtpPassword = resendApiKey || config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
+    const passwordSource = resendApiKey ? "RESEND_API_KEY env" : config.smtpPassword ? "config.smtpPassword (from DB)" : process.env.EMAIL_SMTP_PASSWORD ? "EMAIL_SMTP_PASSWORD env" : "empty";
+
+    console.log(`[email] sendViaSMTP: host=${effectiveHost}, user=${effectiveUser}, port=${config.smtpPort}, secure=${config.smtpSecure}, passwordSource=${passwordSource}, passwordLength=${smtpPassword.length}`);
 
     if (!effectiveHost || !effectiveUser || !smtpPassword) {
       return { success: false, error: "SMTP configuration incomplete" };
