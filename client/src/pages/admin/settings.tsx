@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { type SiteSettings } from "@shared/schema";
+import { type SiteSettings, type User } from "@shared/schema";
 import { 
   Save, Loader2, Settings, PenLine, Globe, Shield, Lock, Server, Smartphone, Mail, QrCode
 } from "lucide-react";
@@ -95,6 +95,16 @@ export function SettingsPage() {
   const [twoFactorMethod, setTwoFactorMethod] = useState<string>("none");
   const [showQrSetup, setShowQrSetup] = useState(false);
 
+  const { data: userProfile } = useQuery<User>({
+    queryKey: ["/api/admin/me"],
+  });
+
+  useEffect(() => {
+    if (userProfile?.twoFactorMethod) {
+      setTwoFactorMethod(userProfile.twoFactorMethod);
+    }
+  }, [userProfile]);
+
   const update2FAMutation = useMutation({
     mutationFn: async (method: string) => {
       const token = localStorage.getItem("vyomai-admin-token");
@@ -107,6 +117,16 @@ export function SettingsPage() {
       toast({ title: "Error", description: "Failed to update 2FA settings", variant: "destructive" });
     },
   });
+
+  const handle2FAChange = (val: string) => {
+    setTwoFactorMethod(val);
+    if (val === "totp" || val === "both") {
+      setShowQrSetup(true);
+    }
+    if (val === "none" || val === "email") {
+      update2FAMutation.mutate(val);
+    }
+  };
 
   const emailConfigMutation = useMutation({
     mutationFn: async (data: any) => {
@@ -356,10 +376,7 @@ export function SettingsPage() {
             </div>
             <Select
               value={twoFactorMethod}
-              onValueChange={(val) => {
-                setTwoFactorMethod(val);
-                update2FAMutation.mutate(val);
-              }}
+              onValueChange={handle2FAChange}
             >
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select method" />
@@ -414,6 +431,7 @@ export function SettingsPage() {
         onAuthenticate={() => {
           setTwoFactorMethod("totp");
           update2FAMutation.mutate("totp");
+          setShowQrSetup(false);
         }}
       />
     </div>

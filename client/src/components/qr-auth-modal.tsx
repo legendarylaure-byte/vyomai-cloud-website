@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, Copy, Check, Shield, Smartphone } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { QRCodeSVG } from "qrcode.react";
 
 interface QRAuthModalProps {
   open: boolean;
@@ -106,7 +105,7 @@ export function QRAuthModal({ open, onClose, onAuthenticate }: QRAuthModalProps)
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-primary/5 border border-primary/10">
               <div className="bg-white p-3 rounded-lg">
-                <QRCodeSVG value={qrData.qrCode} size={200} />
+                <img src={qrData.qrCode} alt="QR Code" className="w-[200px] h-[200px]" />
               </div>
               <p className="text-xs text-muted-foreground text-center">
                 Scan this QR code with your authenticator app
