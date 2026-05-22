@@ -81,7 +81,7 @@ async function getEmailConfig(): Promise<EmailConfig> {
       smtpHost: settings.smtpHost || "smtp.resend.com",
       smtpPort: settings.smtpPort || "587",
       smtpUser: settings.smtpUser || "resend",
-      smtpPassword: settings.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || process.env.RESEND_API_KEY,
+      smtpPassword: process.env.RESEND_API_KEY || settings.smtpPassword || process.env.EMAIL_SMTP_PASSWORD,
       smtpSecure: settings.smtpSecure !== undefined ? settings.smtpSecure : false,
     };
     configLastFetched = now;
@@ -95,7 +95,7 @@ async function getEmailConfig(): Promise<EmailConfig> {
       smtpHost: "smtp.resend.com",
       smtpPort: "587",
       smtpUser: "resend",
-      smtpPassword: process.env.EMAIL_SMTP_PASSWORD || resendKey,
+      smtpPassword: resendKey || process.env.EMAIL_SMTP_PASSWORD,
     };
   }
 }
@@ -276,7 +276,7 @@ export async function sendEmailWithAttachment(options: {
 
   try {
     const nodemailer = await import("nodemailer");
-    const smtpPassword = process.env.EMAIL_SMTP_PASSWORD || process.env.RESEND_API_KEY;
+    const smtpPassword = process.env.RESEND_API_KEY || process.env.EMAIL_SMTP_PASSWORD;
 
     if (!config.smtpHost || !config.smtpUser || !smtpPassword) {
       console.error("No email provider available for attachments");
