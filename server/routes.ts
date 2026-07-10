@@ -454,6 +454,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         permissions: user.permissions || "[]",
         googleId: user.googleId,
         twoFactorEnabled: user.twoFactorEnabled,
+        twoFactorMethod: user.twoFactorMethod || "none",
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to get user profile" });
@@ -908,6 +909,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
           await storage.updateUser(user.id, {
             twoFactorSecret: secret,
             twoFactorEnabled: true,
+            twoFactorMethod: "totp",
           } as any);
         }
       }

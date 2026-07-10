@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { ThemeProvider } from "@/components/theme-provider";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { WelcomePopup } from "@/components/welcome-popup";
+import { ErrorBoundary } from "@/components/error-boundary";
 import Home from "@/pages/home";
 import AdminLoginQR from "@/pages/admin-login-qr";
 import AdminDashboard from "@/pages/admin-dashboard";
@@ -54,14 +55,16 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <WelcomePopup />
-          <Router />
+          <ErrorBoundary>
+            <Router />
+          </ErrorBoundary>
         </TooltipProvider>
       </ThemeProvider>
     </QueryClientProvider>
   );
 
   if (googleClientId) {
-    return <GoogleOAuthProvider clientId={googleClientId} useOneTap={false} cancel_on_tap_outside={false}>{content}</GoogleOAuthProvider>;
+    return <GoogleOAuthProvider clientId={googleClientId}>{content}</GoogleOAuthProvider>;
   }
 
   return content;
