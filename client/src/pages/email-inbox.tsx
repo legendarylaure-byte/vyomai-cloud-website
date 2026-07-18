@@ -103,7 +103,7 @@ export default function EmailInbox() {
           {/* Sidebar */}
           <div className="lg:col-span-1">
             <Card className="p-4 bg-card/50 border-border/50">
-              <Button className="w-full gap-2 mb-6 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold" data-testid="button-compose-email">
+              <Button className="w-full gap-2 mb-6 bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-white font-semibold" data-testid="button-compose-email" onClick={() => window.location.href = "/"}>
                 <Send className="w-4 h-4" />
                 Compose Email
               </Button>

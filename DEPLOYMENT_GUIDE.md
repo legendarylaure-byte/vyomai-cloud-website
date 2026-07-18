@@ -170,11 +170,11 @@ npm run db:push
 ### Admin Access
 ```bash
 # Default credentials (CHANGE IN PRODUCTION):
-Username: admin
-Password: admin123
+Username: YOUR_ADMIN_USERNAME
+Password: YOUR_ADMIN_PASSWORD
 
 # For production:
-# Change ADMIN_USERNAME and ADMIN_PASSWORD in .env
+# Change ADMIN_USERNAME and ADMIN_PASSWORD in your environment variables
 ```
 
 ## Monitoring & Maintenance

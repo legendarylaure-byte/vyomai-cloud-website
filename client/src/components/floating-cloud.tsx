@@ -104,12 +104,10 @@ export function FloatingCloud({
         gainNode.connect(audioContext.destination);
         const heartbeatBuffer = createHeartbeatSound(audioContext);
         audioRef.current = { context: audioContext, buffer: heartbeatBuffer, gainNode };
-        console.log("Audio context initialized successfully");
         return true;
       }
       return true;
     } catch (e) {
-      console.log("Web Audio API not available:", e);
       return false;
     }
   };
@@ -162,12 +160,11 @@ export function FloatingCloud({
         source.start(0);
         currentSourceRef.current = source;
         isPlayingRef.current = true;
-        console.log("Heartbeat sound playing");
       } catch (e) {
-        console.log("Error playing sound:", e);
+        // Sound playback failed silently
       }
     } else {
-      console.log("Audio not ready:", { context: !!audioRef.current.context, buffer: !!audioRef.current.buffer, gainNode: !!audioRef.current.gainNode });
+      // Audio not ready yet
     }
   };
 

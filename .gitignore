@@ -17,4 +17,7 @@ QA_REPORT.md
 Website_VyomAi-main.zip
 uploads/
 VERCEL_DEPLOYMENT.md
-.env*
+.playwright-mcp/
+test-results/
+*.png
+!client/public/assets/*.png

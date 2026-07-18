@@ -320,10 +320,10 @@ export class FirebaseStorage {
     return { ...data, id: snap.docs[0].id } as User;
   }
   async getUserByEmail(email: string) {
-    const snap = await col("users").get();
     const lowerEmail = email.toLowerCase();
-    const doc = snap.docs.find(d => (d.data().email || "").toLowerCase() === lowerEmail);
-    if (!doc) return undefined;
+    const snap = await col("users").where("email", "==", lowerEmail).limit(1).get();
+    if (snap.empty) return undefined;
+    const doc = snap.docs[0];
     const data = doc.data() as User;
     return { ...data, id: doc.id } as User;
   }
@@ -375,7 +375,11 @@ export class FirebaseStorage {
       await snap.ref.delete();
       return false;
     }
-    return stored.code === code;
+    const { timingSafeEqual } = await import("crypto");
+    const a = Buffer.from(stored.code);
+    const b = Buffer.from(code);
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
   }
   async clearResetCode(email: string) {
     await col("reset_codes").doc(email.toLowerCase()).delete().catch(() => {});

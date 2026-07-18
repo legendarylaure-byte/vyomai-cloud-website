@@ -104,7 +104,7 @@ export function QRAuthModal({ open, onClose, onAuthenticate }: QRAuthModalProps)
         ) : qrData ? (
           <div className="space-y-6">
             <div className="flex flex-col items-center gap-4 p-4 rounded-lg bg-primary/5 border border-primary/10">
-              <div className="bg-white p-3 rounded-lg">
+              <div className="bg-background p-3 rounded-lg border border-border/50">
                 <img src={qrData.qrCode} alt="QR Code" className="w-[200px] h-[200px]" />
               </div>
               <p className="text-xs text-muted-foreground text-center">

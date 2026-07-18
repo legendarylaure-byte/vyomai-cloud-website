@@ -64,7 +64,7 @@ export function SettingsPage() {
         host: settings.smtpHost || "",
         port: settings.smtpPort || "587",
         user: settings.smtpUser || "",
-        password: settings.smtpPassword || "",
+        password: settings.smtpPassword ? "" : "",
         secure: settings.smtpSecure || false
       }));
     }
@@ -144,15 +144,19 @@ export function SettingsPage() {
   });
 
   const handleSaveConfig = () => {
-    emailConfigMutation.mutate({
+    const payload: any = {
       smtpHost: smtpConfig.host || "smtp.resend.com",
       smtpPort: smtpConfig.port || "587",
       smtpUser: smtpConfig.user || "resend",
-      smtpPassword: smtpConfig.password,
       smtpSecure: smtpConfig.secure,
       emailProvider: "smtp",
-      emailFeaturesEnabled: true
-    });
+      emailFeaturesEnabled: true,
+    };
+    // Only send password if user actually changed it (not the masked placeholder)
+    if (smtpConfig.password && smtpConfig.password !== "") {
+      payload.smtpPassword = smtpConfig.password;
+    }
+    emailConfigMutation.mutate(payload);
   };
 
 

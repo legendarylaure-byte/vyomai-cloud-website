@@ -34,7 +34,7 @@ npx vercel deploy --prod --yes
 ```
 
 ## Vercel Env Var to Set (manually in dashboard)
-- `RESEND_API_KEY` = `re_PKnG5uo9_6e2obfgD2xBQoEGmCExpAtL7`
-- `GOOGLE_CLIENT_ID` = `1075238017646-3pet24g62h7u6c6akaevq9ncennc1ru7.apps.googleusercontent.com` (verify it's still there)
-- `VITE_GOOGLE_CLIENT_ID` = same as above (verify)
-- `ADMIN_PASSWORD` = ADMIN_PASSWORD_PLACEHOLDER
+- `RESEND_API_KEY` = YOUR_RESEND_API_KEY_HERE
+- `GOOGLE_CLIENT_ID` = YOUR_GOOGLE_CLIENT_ID_HERE
+- `VITE_GOOGLE_CLIENT_ID` = same as above
+- `ADMIN_PASSWORD` = YOUR_ADMIN_PASSWORD_HERE

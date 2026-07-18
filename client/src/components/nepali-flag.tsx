@@ -4,6 +4,8 @@ export function NepaliFlag({ className = "w-6 h-8" }: { className?: string }) {
       viewBox="0 0 100 120"
       className={className}
       xmlns="http://www.w3.org/2000/svg"
+      role="img"
+      aria-label="Flag of Nepal"
     >
       <defs>
         <clipPath id="flagClip">

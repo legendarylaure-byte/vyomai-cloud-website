@@ -8,7 +8,8 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { useToast } from "@/hooks/use-toast";
-import { useScrollAnimation } from "@/hooks/use-scroll-animation";
+import { motion } from "framer-motion";
+import { SectionHeader } from "@/components/text-reveal";
 import { type ProjectDiscussion } from "@shared/schema";
 import { z } from "zod";
 import { Loader2, Send } from "lucide-react";
@@ -23,7 +24,6 @@ const projectFormSchema = z.object({
 type ProjectFormData = z.infer<typeof projectFormSchema>;
 
 export function ProjectDiscussionSection() {
-  const { ref, isVisible } = useScrollAnimation();
   const { toast } = useToast();
 
   const { data: discussion, isLoading: discussionLoading } = useQuery<ProjectDiscussion>({
@@ -69,30 +69,25 @@ export function ProjectDiscussionSection() {
   return (
     <section
       id="project-discussion"
-      className="relative py-24 overflow-hidden"
+      className="section-b relative py-24 overflow-hidden"
       data-testid="section-project-discussion"
     >
       <div className="absolute inset-0 mandala-pattern opacity-10" />
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div
-          ref={ref}
-          className={`scroll-fade-in ${isVisible ? "visible" : ""}`}
+        <motion.div
+          initial={{ opacity: 0, y: 60, filter: "blur(12px)" }}
+          whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          viewport={{ once: false, margin: "-8%" }}
+          transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
         >
-          <div className="text-center mb-12">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-              Custom Solutions
-            </span>
-            <h2 className="text-4xl sm:text-5xl font-bold mb-6 font-[Space_Grotesk]">
-              <span className="text-foreground">Discuss Your </span>
-              <span className="gradient-text">Project</span>
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {discussion?.description || "Have a unique project in mind? Let's discuss how we can help you achieve your AI goals."}
-            </p>
-          </div>
+          <SectionHeader
+            badge="Custom Solutions"
+            title={<>Discuss Your <span className="gradient-brand-text">Project</span></>}
+            subtitle={discussion?.description || "Have a unique project in mind? Let's discuss how we can help you achieve your AI goals."}
+          />
 
-          <Card className="glass-card border-0 hover-elevate">
+          <Card className="glass-card border-0 hover-elevate card-hover-glow shimmer-hover">
             <CardContent className="p-8">
               {discussionLoading ? (
                 <div className="space-y-6">
@@ -218,7 +213,7 @@ export function ProjectDiscussionSection() {
               )}
             </CardContent>
           </Card>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

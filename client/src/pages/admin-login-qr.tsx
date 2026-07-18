@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
-import { Loader2, Lock, Mail, Shield, Smartphone, ArrowRight, RotateCcw, UserPlus, Sparkles, Eye, EyeOff } from "lucide-react";
+import { Loader2, Lock, Mail, Shield, Smartphone, ArrowRight, RotateCcw, Sparkles, Eye, EyeOff } from "lucide-react";
 import { AnimatedLogo } from "@/components/animated-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { SeoHead } from "@/components/seo-head";
 import { GoogleLogin } from "@react-oauth/google";
 import { QRAuthModal } from "@/components/qr-auth-modal";
 import { resetPasswordRequestSchema, verifyResetCodeSchema, resetPasswordSchema, type ResetPasswordRequest, type VerifyResetCode, type ResetPassword } from "@shared/schema";
@@ -42,136 +43,6 @@ interface LoginResponse {
   method?: "email" | "totp" | "both";
   sessionId?: string;
   error?: string;
-}
-
-function FloatingOrbs() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full animate-morph-blob bg-gradient-to-r from-purple-600/20 to-blue-600/10 animate-pulse-glow" />
-      <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full animate-morph-blob bg-gradient-to-r from-orange-500/15 to-pink-500/10 animate-pulse-glow" style={{ animationDelay: "-3s", borderRadius: "40% 60% 60% 40% / 50% 40% 60% 50%" }} />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full animate-morph-blob bg-gradient-to-r from-cyan-500/10 to-purple-500/10 animate-pulse-glow" style={{ animationDelay: "-6s" }} />
-    </div>
-  );
-}
-
-function OrbitingRings() {
-  return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-30">
-      <div className="relative w-96 h-96">
-        <div className="absolute inset-0 border border-purple-500/20 rounded-full animate-orbit" />
-        <div className="absolute inset-0 border border-cyan-500/20 rounded-full animate-orbit-reverse" style={{ width: "70%", height: "70%", top: "15%", left: "15%" }} />
-        <div className="absolute top-0 left-1/2 w-3 h-3 bg-purple-400 rounded-full shadow-lg shadow-purple-500/50 animate-orbit" />
-        <div className="absolute bottom-1/4 right-1/4 w-2 h-2 bg-cyan-400 rounded-full shadow-lg shadow-cyan-500/50 animate-orbit-reverse" />
-      </div>
-    </div>
-  );
-}
-
-function GeometricShapes() {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-      <div className="absolute top-[15%] right-[20%] animate-float-3d">
-        <div className="w-16 h-16 border-2 border-purple-400/40 rounded-lg animate-rotate-3d" />
-      </div>
-      <div className="absolute bottom-[25%] left-[15%] animate-float-3d" style={{ animationDelay: "-2s" }}>
-        <div className="w-12 h-12 border-2 border-cyan-400/40 rounded-full animate-rotate-3d-y" />
-      </div>
-      <div className="absolute top-[40%] left-[10%] animate-float-3d" style={{ animationDelay: "-4s" }}>
-        <div className="w-8 h-8 border-2 border-orange-400/40 animate-rotate-3d" style={{ clipPath: "polygon(50% 0%, 100% 100%, 0% 100%)" }} />
-      </div>
-      <div className="absolute bottom-[35%] right-[10%] animate-float-3d" style={{ animationDelay: "-1s" }}>
-        <div className="w-10 h-10 bg-gradient-to-br from-purple-500/20 to-transparent rounded-lg animate-rotate-3d-y" />
-      </div>
-    </div>
-  );
-}
-
-function ParticleField() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    let animId: number;
-    const particles: { x: number; y: number; vx: number; vy: number; size: number; alpha: number; life: number }[] = [];
-    const MAX = 60;
-
-    function resize() {
-      if (!canvas) return;
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    }
-    resize();
-    window.addEventListener("resize", resize);
-
-    for (let i = 0; i < MAX; i++) {
-      particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.5,
-        vy: (Math.random() - 0.5) * 0.5,
-        size: Math.random() * 2 + 0.5,
-        alpha: Math.random() * 0.5 + 0.1,
-        life: Math.random() * 200 + 100,
-      });
-    }
-
-    function draw() {
-      if (!ctx || !canvas) return;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      for (const p of particles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life--;
-
-        if (p.life <= 0) {
-          p.x = Math.random() * canvas.width;
-          p.y = Math.random() * canvas.height;
-          p.life = Math.random() * 200 + 100;
-        }
-
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(139, 92, 246, ${p.alpha})`;
-        ctx.fill();
-      }
-
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-          if (dist < 150) {
-            ctx.beginPath();
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.strokeStyle = `rgba(139, 92, 246, ${0.08 * (1 - dist / 150)})`;
-            ctx.lineWidth = 0.5;
-            ctx.stroke();
-          }
-        }
-      }
-
-      animId = requestAnimationFrame(draw);
-    }
-    draw();
-
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener("resize", resize);
-    };
-  }, []);
-
-  return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-0" />;
 }
 
 export default function AdminLoginQR() {
@@ -409,17 +280,88 @@ export default function AdminLoginQR() {
   const googleLoginEnabled = !!googleClientId;
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
-      <ParticleField />
-      <FloatingOrbs />
-      <OrbitingRings />
-      <GeometricShapes />
+    <div className="min-h-screen bg-background flex items-center justify-between px-6 md:px-[6%] p-4 relative overflow-hidden">
+      <SeoHead
+        noindex
+        title="Admin Login - VyomAi Cloud"
+        description="Admin login portal for VyomAi Cloud."
+        ogUrl="https://vyomai.cloud/admin"
+        canonical="https://vyomai.cloud/admin"
+      />
+      {/* Hero-quality background: video + cosmic + stars + comets */}
+      <div className="absolute inset-0 bg-[#0D0B1A]">
+        <div className="hero-video-container" style={{ height: '100%' }}>
+          <video
+            autoPlay
+            muted
+            loop
+            playsInline
+            className="w-full h-full object-cover"
+            poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1' height='1'%3E%3Crect fill='%230D0B1A' width='1' height='1'/%3E%3C/svg%3E"
+          >
+            <source
+              src="https://api.getlayers.ai/storage/v1/object/public/public/assets/loopstack-f8c64439bf/flower.mp4"
+              type="video/mp4"
+            />
+          </video>
+        </div>
+        <div className="hero-cosmic-bg" />
+        <div className="hero-stars" />
+        <div className="hero-comets" aria-hidden="true">
+          <div className="hero-comet hero-comet-1" />
+          <div className="hero-comet hero-comet-2" />
+          <div className="hero-comet hero-comet-3" />
+        </div>
+        <div className="hero-brand-star hero-brand-star-1" aria-hidden="true" />
+        <div className="hero-brand-star hero-brand-star-2" aria-hidden="true" />
+        <div className="hero-brand-star hero-brand-star-3" aria-hidden="true" />
+      </div>
 
-      {/* Grid overlay */}
-      <div className="absolute inset-0 grid-3d-bg opacity-30" />
+      {/* Left side — Brand + Tagline */}
+      <motion.div
+        className="relative z-10 max-w-xl hidden md:block"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <motion.h1
+          className="text-5xl md:text-6xl lg:text-7xl font-extrabold font-display gradient-brand-text leading-tight tracking-tight"
+          style={{ textShadow: "0 2px 12px rgba(138, 80, 232, 0.3)" }}
+          initial={{ opacity: 0, x: -30 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1], delay: 0.2 }}
+        >
+          VyomAi Cloud
+        </motion.h1>
 
-      {/* Scan line */}
-      <div className="absolute inset-0 scanning-line" />
+        <motion.div
+          className="w-12 h-[3px] rounded-full mt-5 mb-5"
+          style={{ background: "linear-gradient(90deg, #8a50e8, #c060d0, #e07040)" }}
+          initial={{ opacity: 0, scaleX: 0, transformOrigin: "left" }}
+          animate={{ opacity: 1, scaleX: 1 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        />
+
+        <motion.h2
+          className="text-2xl md:text-3xl font-bold font-display text-white leading-snug"
+          style={{ textShadow: "0 2px 8px rgba(0, 0, 0, 0.4)" }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.7 }}
+        >
+          Teaching Robots to Think.<br />Humans to Thrive.
+        </motion.h2>
+
+        <motion.p
+          className="text-lg md:text-xl text-white/70 leading-relaxed mt-4 max-w-md"
+          style={{ textShadow: "0 1px 4px rgba(0, 0, 0, 0.3)" }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.9 }}
+        >
+          Where AI meets good vibes — from Nepal to the world.
+        </motion.p>
+      </motion.div>
 
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.95 }}
@@ -429,10 +371,10 @@ export default function AdminLoginQR() {
       >
         <Card
           ref={cardRef}
-          className="w-full max-w-md card-3d-tilt border-0 relative overflow-hidden animate-border-glow"
+          className="admin-login-card w-full max-w-md card-3d-tilt relative z-10"
         >
           {/* Subtle gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#8a50e8]/5 to-transparent pointer-events-none" />
 
           <CardHeader className="text-center relative">
             <motion.div
@@ -444,7 +386,7 @@ export default function AdminLoginQR() {
               <div className="relative">
                 <AnimatedLogo variant="login" showText={true} />
                 <motion.div
-                  className="absolute -inset-4 bg-gradient-to-r from-purple-500/20 to-cyan-500/20 rounded-full blur-xl"
+                  className="absolute -inset-4 bg-gradient-to-r from-[#8a50e8]/20 to-[#c060d0]/20 rounded-full blur-xl"
                   animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
@@ -455,7 +397,7 @@ export default function AdminLoginQR() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
             >
-              <CardTitle className="text-xl bg-gradient-to-r from-purple-400 to-cyan-400 bg-clip-text text-transparent">
+              <CardTitle className="text-xl gradient-brand-text">
                 {step === "credentials" ? "Secure Portal" : "Two-Factor Authentication"}
               </CardTitle>
               <CardDescription>
@@ -483,7 +425,7 @@ export default function AdminLoginQR() {
                       <FormField control={form.control} name="username" render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            <Sparkles className="w-3 h-3 text-purple-400" />
+                            <Sparkles className="w-3 h-3 text-[#8a50e8]" />
                             Username
                           </FormLabel>
                           <FormControl>
@@ -492,9 +434,9 @@ export default function AdminLoginQR() {
                                 placeholder="admin"
                                 {...field}
                                 data-testid="input-admin-username"
-                                className="pl-9 bg-white/5 dark:bg-black/20 border-purple-500/20 focus:border-purple-500/50 transition-all duration-300"
+                                className="pl-9 bg-white/5 dark:bg-black/20 border-[#8a50e8]/20 focus:border-[#8a50e8]/50 transition-all duration-300"
                               />
-                              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/50" />
+                              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a50e8]/50" />
                             </div>
                           </FormControl>
                           <FormMessage />
@@ -503,7 +445,7 @@ export default function AdminLoginQR() {
                       <FormField control={form.control} name="password" render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-sm font-medium flex items-center gap-2">
-                            <Sparkles className="w-3 h-3 text-purple-400" />
+                            <Sparkles className="w-3 h-3 text-[#8a50e8]" />
                             Password
                           </FormLabel>
                           <FormControl>
@@ -513,13 +455,14 @@ export default function AdminLoginQR() {
                                 placeholder="••••••••"
                                 {...field}
                                 data-testid="input-admin-password"
-                                className="pl-9 pr-9 bg-white/5 dark:bg-black/20 border-purple-500/20 focus:border-purple-500/50 transition-all duration-300"
+                                className="pl-9 pr-9 bg-white/5 dark:bg-black/20 border-[#8a50e8]/20 focus:border-[#8a50e8]/50 transition-all duration-300"
                               />
-                              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-purple-400/50" />
+                              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a50e8]/50" />
                               <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-purple-400/50 hover:text-purple-400 transition-colors"
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a50e8]/50 hover:text-[#8a50e8] transition-colors"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
                               >
                                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                               </button>
@@ -532,7 +475,7 @@ export default function AdminLoginQR() {
                         <Button
                           type="submit"
                           disabled={isSubmitting}
-                          className="w-full relative overflow-hidden group bg-gradient-to-r from-purple-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 transition-all duration-300"
+                          className="w-full relative overflow-hidden group admin-btn-glow transition-all duration-300"
                           data-testid="button-login-submit"
                         >
                           <motion.span
@@ -551,7 +494,7 @@ export default function AdminLoginQR() {
                   {googleLoginEnabled && (
                     <div className="relative my-4">
                       <div className="absolute inset-0 flex items-center">
-                        <span className="w-full border-t border-purple-500/20" />
+                        <span className="w-full border-t border-[#8a50e8]/20" />
                       </div>
                       <div className="relative flex justify-center text-xs uppercase">
                         <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
@@ -593,14 +536,14 @@ export default function AdminLoginQR() {
                   }}>
                     <DialogTrigger asChild>
                       <Button type="button" variant="ghost" className="w-full text-sm hover-elevate group" data-testid="button-forgot-password-qr">
-                        <Mail className="w-4 h-4 mr-2 group-hover:text-purple-400 transition-colors" />
+                        <Mail className="w-4 h-4 mr-2 group-hover:text-[#8a50e8] transition-colors" />
                         Forgot Password?
                       </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md overflow-hidden border-purple-500/20">
+                    <DialogContent className="sm:max-w-md overflow-hidden border-[#8a50e8]/20">
                       <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
-                          <Mail className="w-5 h-5 text-purple-400" />
+                          <Mail className="w-5 h-5 text-[#8a50e8]" />
                           Reset Password
                         </DialogTitle>
                       </DialogHeader>
@@ -619,7 +562,7 @@ export default function AdminLoginQR() {
                             )} />
                             <div className="flex gap-2 pt-4">
                               <Button type="button" variant="outline" onClick={() => setIsForgotPasswordOpen(false)} className="flex-1">Cancel</Button>
-                              <Button type="submit" disabled={requestResetMutation.isPending} className="flex-1 hover-elevate bg-gradient-to-r from-purple-600 to-cyan-600" data-testid="button-request-code-qr">
+                              <Button type="submit" disabled={requestResetMutation.isPending} className="flex-1 hover-elevate admin-btn-glow" data-testid="button-request-code-qr">
                                 {requestResetMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sending...</> : <><ArrowRight className="w-4 h-4 mr-2" /> Send Code</>}
                               </Button>
                             </div>
@@ -651,7 +594,7 @@ export default function AdminLoginQR() {
                             )} />
                             <div className="flex gap-2 pt-4">
                               <Button type="button" variant="outline" onClick={() => { setResetStep("email"); resetCodeForm.reset(); }} className="flex-1">Back</Button>
-                              <Button type="submit" disabled={verifyCodeMutation.isPending || resetCodeForm.getValues("code").length !== 6} className="flex-1 hover-elevate bg-gradient-to-r from-purple-600 to-cyan-600" data-testid="button-verify-code-qr">
+                              <Button type="submit" disabled={verifyCodeMutation.isPending || resetCodeForm.getValues("code").length !== 6} className="flex-1 hover-elevate admin-btn-glow" data-testid="button-verify-code-qr">
                                 {verifyCodeMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...</> : <><ArrowRight className="w-4 h-4 mr-2" /> Next</>}
                               </Button>
                             </div>
@@ -678,7 +621,7 @@ export default function AdminLoginQR() {
                             )} />
                             <div className="flex gap-2 pt-4">
                               <Button type="button" variant="outline" onClick={() => { setResetStep("code"); resetPasswordForm.reset(); }} className="flex-1">Back</Button>
-                              <Button type="submit" disabled={resetPasswordMutation.isPending} className="flex-1 hover-elevate bg-gradient-to-r from-purple-600 to-cyan-600" data-testid="button-reset-password-qr">
+                              <Button type="submit" disabled={resetPasswordMutation.isPending} className="flex-1 hover-elevate admin-btn-glow" data-testid="button-reset-password-qr">
                                 {resetPasswordMutation.isPending ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Resetting...</> : <><Lock className="w-4 h-4 mr-2" /> Reset Password</>}
                               </Button>
                             </div>
@@ -703,13 +646,13 @@ export default function AdminLoginQR() {
                 <motion.div key="choose-2fa" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button variant="outline" className="w-full h-auto flex-col gap-2 py-6 border-purple-500/20 hover:border-purple-500/50 transition-all" onClick={() => setStep("totp")}>
+                      <Button variant="outline" className="w-full h-auto flex-col gap-2 py-6 border-[#8a50e8]/20 hover:border-[#8a50e8]/50 transition-all" onClick={() => setStep("totp")}>
                         <Smartphone className="w-6 h-6" />
                         <span>Authenticator App</span>
                       </Button>
                     </motion.div>
                     <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                      <Button variant="outline" className="w-full h-auto flex-col gap-2 py-6 border-purple-500/20 hover:border-purple-500/50 transition-all" onClick={() => setStep("email-otp")}>
+                      <Button variant="outline" className="w-full h-auto flex-col gap-2 py-6 border-[#8a50e8]/20 hover:border-[#8a50e8]/50 transition-all" onClick={() => setStep("email-otp")}>
                         <Mail className="w-6 h-6" />
                         <span>Email Code</span>
                       </Button>
@@ -724,7 +667,7 @@ export default function AdminLoginQR() {
               {step === "totp" && (
                 <motion.div key="totp" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-4">
                   <div className="flex justify-center mb-2">
-                    <Shield className="w-12 h-12 text-purple-400" />
+                    <Shield className="w-12 h-12 text-[#8a50e8]" />
                   </div>
                   <Form {...totpForm}>
                     <form onSubmit={totpForm.handleSubmit(onTotpSubmit)} className="space-y-4">
@@ -732,13 +675,13 @@ export default function AdminLoginQR() {
                         <FormItem>
                           <FormLabel>Authenticator Code</FormLabel>
                           <FormControl>
-                            <Input placeholder="000000" maxLength={6} className="text-center text-2xl tracking-widest font-mono bg-white/5 dark:bg-black/20 border-purple-500/20" {...field}
+                            <Input placeholder="000000" maxLength={6} className="text-center text-2xl tracking-widest font-mono bg-white/5 dark:bg-black/20 border-[#8a50e8]/20" {...field}
                               onChange={(e) => { const val = e.target.value.replace(/\D/g, "").slice(0, 6); field.onChange(val); }} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />
-                      <Button type="submit" disabled={isSubmitting || totpForm.getValues("token").length !== 6} className="w-full bg-gradient-to-r from-purple-600 to-cyan-600">
+                      <Button type="submit" disabled={isSubmitting || totpForm.getValues("token").length !== 6} className="w-full admin-btn-glow">
                         {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...</> : "Verify & Login"}
                       </Button>
                       <Button type="button" variant="ghost" className="w-full" onClick={() => { setStep("credentials"); setLoginSession(null); totpForm.reset(); }}>
@@ -752,7 +695,7 @@ export default function AdminLoginQR() {
               {step === "email-otp" && (
                 <motion.div key="email-otp" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="space-y-4">
                   <div className="flex justify-center mb-2">
-                    <Mail className="w-12 h-12 text-purple-400" />
+                    <Mail className="w-12 h-12 text-[#8a50e8]" />
                   </div>
                   <p className="text-sm text-center text-muted-foreground">
                     A verification code has been sent to your registered email. It expires in 10 minutes.
@@ -763,18 +706,18 @@ export default function AdminLoginQR() {
                         <FormItem>
                           <FormLabel>Verification Code</FormLabel>
                           <FormControl>
-                            <Input placeholder="000000" maxLength={6} className="text-center text-2xl tracking-widest font-mono bg-white/5 dark:bg-black/20 border-purple-500/20" {...field}
+                            <Input placeholder="000000" maxLength={6} className="text-center text-2xl tracking-widest font-mono bg-white/5 dark:bg-black/20 border-[#8a50e8]/20" {...field}
                               onChange={(e) => { const val = e.target.value.replace(/\D/g, "").slice(0, 6); field.onChange(val); }} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />
-                      <Button type="submit" disabled={isSubmitting || emailOtpForm.getValues("otp").length !== 6} className="w-full bg-gradient-to-r from-purple-600 to-cyan-600">
+                      <Button type="submit" disabled={isSubmitting || emailOtpForm.getValues("otp").length !== 6} className="w-full admin-btn-glow">
                         {isSubmitting ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Verifying...</> : "Verify & Login"}
                       </Button>
                     </form>
                   </Form>
-                  <Button type="button" variant="outline" className="w-full border-purple-500/20" onClick={handleResendOtp}>
+                  <Button type="button" variant="outline" className="w-full border-[#8a50e8]/20" onClick={handleResendOtp}>
                     <RotateCcw className="w-4 h-4 mr-2" />
                     Resend Code
                   </Button>

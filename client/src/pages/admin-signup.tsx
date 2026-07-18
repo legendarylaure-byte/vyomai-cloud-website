@@ -204,13 +204,13 @@ export default function AdminSignup() {
 
       {/* Floating orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/3 right-1/4 w-72 h-72 rounded-full animate-morph-blob bg-gradient-to-r from-cyan-500/15 to-purple-500/10 animate-pulse-glow" />
-        <div className="absolute bottom-1/4 left-1/4 w-64 h-64 rounded-full animate-morph-blob bg-gradient-to-r from-emerald-500/10 to-teal-500/10 animate-pulse-glow" style={{ animationDelay: "-4s" }} />
+        <div className="absolute top-1/3 right-1/4 w-72 h-72 rounded-full animate-morph-blob bg-gradient-to-r from-[#c060d0]/15 to-[#8a50e8]/10 animate-pulse-glow" />
+        <div className="absolute bottom-1/4 left-1/4 w-64 h-64 rounded-full animate-morph-blob bg-gradient-to-r from-[#8a50e8]/10 to-[#c060d0]/10 animate-pulse-glow" style={{ animationDelay: "-4s" }} />
       </div>
 
       {/* Geometric shapes */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none opacity-20">
-        <div className="absolute top-[20%] left-[10%] w-12 h-12 border-2 border-cyan-400/40 rounded-lg animate-rotate-3d" />
+        <div className="absolute top-[20%] left-[10%] w-12 h-12 border-2 border-[#8a50e8]/40 rounded-lg animate-rotate-3d" />
         <div className="absolute bottom-[30%] right-[15%] w-10 h-10 border-2 border-purple-400/40 animate-rotate-3d-y" style={{ borderRadius: "30% 70% 50% 50% / 30% 50% 50% 70%" }} />
       </div>
 
@@ -227,7 +227,7 @@ export default function AdminSignup() {
           ref={cardRef}
           className="w-full max-w-md card-3d-tilt border-0 relative overflow-hidden animate-border-glow"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#8a50e8]/5 to-transparent pointer-events-none" />
 
           <CardHeader className="text-center relative">
             <motion.div
@@ -239,7 +239,7 @@ export default function AdminSignup() {
               <div className="relative">
                 <AnimatedLogo variant="login" showText={true} />
                 <motion.div
-                  className="absolute -inset-4 bg-gradient-to-r from-cyan-500/20 to-purple-500/20 rounded-full blur-xl"
+                  className="absolute -inset-4 bg-gradient-to-r from-[#8a50e8]/20 to-[#c060d0]/20 rounded-full blur-xl"
                   animate={{ scale: [1, 1.1, 1], opacity: [0.5, 0.8, 0.5] }}
                   transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
                 />
@@ -250,7 +250,7 @@ export default function AdminSignup() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.4 }}
             >
-              <CardTitle className="text-xl bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">
+              <CardTitle className="text-xl gradient-brand-text">
                 Create Account
               </CardTitle>
               <CardDescription>
@@ -271,7 +271,7 @@ export default function AdminSignup() {
                   <FormField control={form.control} name="name" render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium flex items-center gap-2">
-                        <Sparkles className="w-3 h-3 text-cyan-400" />
+                        <Sparkles className="w-3 h-3 text-[#8a50e8]" />
                         Full Name
                       </FormLabel>
                       <FormControl>
@@ -279,9 +279,9 @@ export default function AdminSignup() {
                           <Input
                             placeholder="Your name"
                             {...field}
-                            className="pl-9 bg-white/5 dark:bg-black/20 border-cyan-500/20 focus:border-cyan-500/50 transition-all duration-300"
+                            className="pl-9 bg-white/5 dark:bg-black/20 border-[#8a50e8]/20 focus:border-[#8a50e8]/50 transition-all duration-300"
                           />
-                          <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400/50" />
+                          <UserPlus className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a50e8]/50" />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -291,7 +291,7 @@ export default function AdminSignup() {
                   <FormField control={form.control} name="email" render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium flex items-center gap-2">
-                        <Sparkles className="w-3 h-3 text-cyan-400" />
+                        <Sparkles className="w-3 h-3 text-[#8a50e8]" />
                         Email
                       </FormLabel>
                       <FormControl>
@@ -300,9 +300,9 @@ export default function AdminSignup() {
                             type="email"
                             placeholder="you@example.com"
                             {...field}
-                            className="pl-9 bg-white/5 dark:bg-black/20 border-cyan-500/20 focus:border-cyan-500/50 transition-all duration-300"
+                            className="pl-9 bg-white/5 dark:bg-black/20 border-[#8a50e8]/20 focus:border-[#8a50e8]/50 transition-all duration-300"
                           />
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400/50" />
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a50e8]/50" />
                         </div>
                       </FormControl>
                       <FormMessage />
@@ -312,7 +312,7 @@ export default function AdminSignup() {
                   <FormField control={form.control} name="password" render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium flex items-center gap-2">
-                        <Sparkles className="w-3 h-3 text-cyan-400" />
+                        <Sparkles className="w-3 h-3 text-[#8a50e8]" />
                         Password
                       </FormLabel>
                       <FormControl>
@@ -321,13 +321,14 @@ export default function AdminSignup() {
                             type={showPassword ? "text" : "password"}
                             placeholder="••••••••"
                             {...field}
-                            className="pl-9 pr-9 bg-white/5 dark:bg-black/20 border-cyan-500/20 focus:border-cyan-500/50 transition-all duration-300"
+                            className="pl-9 pr-9 bg-white/5 dark:bg-black/20 border-[#8a50e8]/20 focus:border-[#8a50e8]/50 transition-all duration-300"
                           />
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400/50" />
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a50e8]/50" />
                           <button
                             type="button"
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-400/50 hover:text-cyan-400 transition-colors"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a50e8]/50 hover:text-[#8a50e8] transition-colors"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
                           >
                             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
@@ -357,7 +358,7 @@ export default function AdminSignup() {
                   <FormField control={form.control} name="confirmPassword" render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium flex items-center gap-2">
-                        <CheckCircle2 className="w-3 h-3 text-cyan-400" />
+                        <CheckCircle2 className="w-3 h-3 text-[#8a50e8]" />
                         Confirm Password
                       </FormLabel>
                       <FormControl>
@@ -366,13 +367,14 @@ export default function AdminSignup() {
                             type={showConfirmPassword ? "text" : "password"}
                             placeholder="••••••••"
                             {...field}
-                            className="pl-9 pr-9 bg-white/5 dark:bg-black/20 border-cyan-500/20 focus:border-cyan-500/50 transition-all duration-300"
+                            className="pl-9 pr-9 bg-white/5 dark:bg-black/20 border-[#8a50e8]/20 focus:border-[#8a50e8]/50 transition-all duration-300"
                           />
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cyan-400/50" />
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8a50e8]/50" />
                           <button
                             type="button"
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-cyan-400/50 hover:text-cyan-400 transition-colors"
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8a50e8]/50 hover:text-[#8a50e8] transition-colors"
+                            aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                           >
                             {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
@@ -386,7 +388,7 @@ export default function AdminSignup() {
                     <Button
                       type="submit"
                       disabled={signupMutation.isPending}
-                      className="w-full relative overflow-hidden group bg-gradient-to-r from-cyan-600 to-purple-600 hover:from-cyan-500 hover:to-purple-500 transition-all duration-300"
+                      className="w-full relative overflow-hidden group admin-btn-glow transition-all duration-300"
                     >
                       <motion.span
                         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700"
@@ -405,7 +407,7 @@ export default function AdminSignup() {
                 <>
                   <div className="relative my-4">
                     <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t border-cyan-500/20" />
+                      <span className="w-full border-t border-[#8a50e8]/20" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                       <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
@@ -441,7 +443,7 @@ export default function AdminSignup() {
                   Already have an account?{" "}
                   <button
                     onClick={() => setLocation("/admin")}
-                    className="text-cyan-400 hover:text-cyan-300 underline underline-offset-2 transition-colors"
+                    className="text-[#8a50e8] hover:text-[#c060d0] underline underline-offset-2 transition-colors"
                   >
                     Sign In
                   </button>

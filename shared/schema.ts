@@ -120,6 +120,7 @@ export const siteSettingsSchema = z.object({
   showProjectDiscussionSection: z.boolean().optional().default(true),
   showFaqSection: z.boolean().optional().default(true),
   showTestimonialsSection: z.boolean().optional().default(true),
+  showInteractiveAISection: z.boolean().optional().default(true),
   // Booking bot toggle
   bookingBotEnabled: z.boolean().optional().default(true),
   // Currency exchange rates (stored as JSON)

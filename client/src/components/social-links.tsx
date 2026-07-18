@@ -50,7 +50,7 @@ export function SocialLinks({ size = "default" }: { size?: "default" | "lg" }) {
           variant="ghost"
           size="icon"
           asChild
-          className={`${link.color} transition-colors`}
+          className={`header-icon-btn ${link.color} transition-colors`}
         >
           <a
             href={link.href}

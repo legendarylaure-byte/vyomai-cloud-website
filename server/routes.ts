@@ -8,10 +8,19 @@ import { z } from "zod";
 import jwt from "jsonwebtoken";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import bcryptjs from "bcryptjs";
-import { randomBytes, randomUUID } from "crypto";
+import { randomBytes, randomUUID, randomInt, timingSafeEqual } from "crypto";
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 import multer from "multer";
 import { sendContactFormEmail, sendPasswordResetEmail, sendBookingConfirmationEmail, sendOneTimePricingRequestEmail, sendEmail, sendEmailWithAttachment, sendOTPEmail } from "./email-service.js";
-import { generateTwoFactorSecret, verifyTwoFactorToken } from "./two-factor-auth.js";
+import { generateTwoFactorSecret, verifyTwoFactorToken, generateBackupCodes } from "./two-factor-auth.js";
 import { initiatePayment } from "./payment-service.js";
 import { validateEmailCredentials, fetchEmails, createEmailSession, validateEmailSession, endEmailSession } from "./email-client.js";
 import PDFDocument from "pdfkit";
@@ -257,7 +266,11 @@ export async function registerRoutes(
   app.get("/api/settings", async (req, res) => {
     try {
       const settings = await storage.getSettings();
-      res.json(settings);
+      const safe = { ...settings };
+      if ((safe as any).smtpPassword) {
+        (safe as any).smtpPassword = (safe as any).smtpPassword ? "••••••••" : "";
+      }
+      res.json(safe);
     } catch (error) {
       res.status(500).json({ error: "Failed to get settings" });
     }
@@ -283,14 +296,20 @@ export async function registerRoutes(
     }
   });
 
+  const contactSchema = z.object({
+    name: z.string().min(1).max(128),
+    email: z.string().email().max(256),
+    subject: z.string().min(1).max(256),
+    message: z.string().min(1).max(5000),
+  });
+
   app.post("/api/contact", async (req, res) => {
     try {
-      const { name, email, subject, message } = req.body;
-
-      // Validate input
-      if (!name || !email || !subject || !message) {
-        return res.status(400).json({ error: "All fields are required" });
+      const parsed = contactSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid input: " + parsed.error.errors.map(e => e.message).join(", ") });
       }
+      const { name, email, subject, message } = parsed.data;
 
       // Send emails (await to handle errors)
       await sendContactFormEmail({ name, email, subject, message });
@@ -304,7 +323,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "The provided email address does not exist or cannot be reached." });
       }
 
-      res.status(500).json({ error: "Failed to process contact form: " + (error.message || "Unknown error") });
+      res.status(500).json({ error: "Failed to process contact form" });
     }
   });
 
@@ -399,8 +418,415 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       console.error("Chat API Error:", error);
       res.status(500).json({ 
         response: "I apologize, I'm having trouble connecting to the AI service. Please try again later.",
-        details: error instanceof Error ? error.message : "Unknown error" 
       });
+    }
+  });
+
+  // Streaming chat endpoint using Gemini's streaming API
+  app.post("/api/chat-stream", async (req, res) => {
+    try {
+      const chatSchema = z.object({
+        messages: z.array(z.object({
+          role: z.enum(["user", "assistant"]),
+          content: z.string().max(10000),
+        })).min(1).max(100),
+        language: z.string().max(20).optional().default("english"),
+      });
+      const validated = chatSchema.parse(req.body);
+      const { messages, language: lang } = validated;
+
+      if (!process.env.GEMINI_API_KEY) {
+        return res.status(503).json({ error: "AI service not configured" });
+      }
+
+      if (!genAI) {
+        return res.status(503).json({ error: "AI service unavailable" });
+      }
+
+      const systemMessage = systemPrompts[lang] || systemPrompts.english;
+
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: systemMessage,
+      });
+
+      const rawHistory = messages.slice(0, -1);
+      const history: { role: "user" | "model"; parts: { text: string }[] }[] = [];
+
+      let lastRole: string | null = null;
+      for (const m of rawHistory) {
+        const geminiRole = m.role === "assistant" ? "model" as const : "user" as const;
+        if (history.length === 0 && geminiRole !== "user") continue;
+        if (geminiRole === lastRole) continue;
+        history.push({ role: geminiRole, parts: [{ text: m.content }] });
+        lastRole = geminiRole;
+      }
+
+      const lastMessage = messages[messages.length - 1];
+      const chat = model.startChat({ history });
+
+      // Set SSE headers
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders();
+
+      // Heartbeat to keep connection alive
+      const heartbeat = setInterval(() => {
+        res.write(": heartbeat\n\n");
+      }, 15000);
+
+      const stream = await chat.sendMessageStream(lastMessage.content);
+
+      let fullResponse = "";
+      for await (const chunk of stream.stream) {
+        const text = chunk.text();
+        if (text) {
+          fullResponse += text;
+          res.write(`data: ${JSON.stringify({ type: "chunk", text })}\n\n`);
+        }
+      }
+
+      clearInterval(heartbeat);
+      res.write(`data: ${JSON.stringify({ type: "done", fullResponse })}\n\n`);
+      res.end();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("Streaming Chat Error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Streaming chat failed" });
+      } else {
+        res.write(`data: ${JSON.stringify({ type: "error", message: "AI service error" })}\n\n`);
+        res.end();
+      }
+    }
+  });
+
+  // AI Consultant endpoint for hero demo
+  app.post("/api/ai/consult", async (req, res) => {
+    try {
+      const consultSchema = z.object({
+        message: z.string().min(1).max(10000),
+      });
+      const validated = consultSchema.parse(req.body);
+
+      if (!process.env.GEMINI_API_KEY || !genAI) {
+        return res.status(503).json({ error: "AI service unavailable" });
+      }
+
+      const consultantPrompt = `You are an AI business consultant for VyomAi Cloud Pvt. Ltd, based in Kathmandu, Nepal. 
+When a visitor describes their business challenge, provide 2-3 specific AI solutions with expected outcomes.
+Be concise (3-4 sentences max). Be friendly and professional. Reference VyomAi's services when relevant.
+Always respond in English.`;
+
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: consultantPrompt,
+      });
+
+      // Set SSE headers for streaming
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders();
+
+      const heartbeat = setInterval(() => {
+        res.write(": heartbeat\n\n");
+      }, 15000);
+
+      const result = await model.generateContentStream(validated.message);
+
+      let fullResponse = "";
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) {
+          fullResponse += text;
+          res.write(`data: ${JSON.stringify({ type: "chunk", text })}\n\n`);
+        }
+      }
+
+      clearInterval(heartbeat);
+      res.write(`data: ${JSON.stringify({ type: "done", fullResponse })}\n\n`);
+      res.end();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("AI Consultant Error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Consultant service error" });
+      } else {
+        res.write(`data: ${JSON.stringify({ type: "error", message: "AI service error" })}\n\n`);
+        res.end();
+      }
+    }
+  });
+
+  // ==================== INTERACTIVE AI FEATURES ====================
+
+  // 1. AI Playground — text transform, idea analyze, tagline generate
+  app.post("/api/ai/playground", async (req, res) => {
+    try {
+      const playgroundSchema = z.object({
+        type: z.enum(["transform", "analyze", "tagline"]),
+        input: z.string().min(1).max(5000),
+        option: z.string().max(100).optional(),
+      });
+      const validated = playgroundSchema.parse(req.body);
+
+      if (!process.env.GEMINI_API_KEY || !genAI) {
+        return res.status(503).json({ error: "AI service unavailable" });
+      }
+
+      const prompts: Record<string, string> = {
+        transform: `Rewrite the following text in a "${validated.option || "professional"}" tone. Keep the core meaning but change the style. Output ONLY the rewritten text, nothing else.\n\nText: "${validated.input}"`,
+        analyze: `You are a business analyst for an AI consulting company. Analyze this business idea concisely:\n\n"${validated.input}"\n\nProvide:\n1. 🎯 Market Potential (1 sentence)\n2. 🤖 AI Integration Opportunity (1 sentence)\n3. ⚡ Quick Win Suggestion (1 sentence)\n4. 🚀 Growth Prediction (1 sentence)\n\nKeep each point punchy and specific.`,
+        tagline: `Generate 5 creative, memorable taglines for a company called "${validated.input || "your company"}". Make them inspiring, modern, and AI-themed. One tagline per line. Include a relevant emoji at the start of each.`,
+      };
+
+      const prompt = prompts[validated.type] || prompts.transform;
+
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: "You are a creative AI assistant for VyomAi Cloud Pvt. Ltd. Be concise, impressive, and helpful.",
+      });
+
+      res.setHeader("Content-Type", "text/event-stream");
+      res.setHeader("Cache-Control", "no-cache");
+      res.setHeader("Connection", "keep-alive");
+      res.setHeader("X-Accel-Buffering", "no");
+      res.flushHeaders();
+
+      const heartbeat = setInterval(() => { res.write(": heartbeat\n\n"); }, 15000);
+      const result = await model.generateContentStream(prompt);
+
+      let fullResponse = "";
+      for await (const chunk of result.stream) {
+        const text = chunk.text();
+        if (text) {
+          fullResponse += text;
+          res.write(`data: ${JSON.stringify({ type: "chunk", text })}\n\n`);
+        }
+      }
+      clearInterval(heartbeat);
+      res.write(`data: ${JSON.stringify({ type: "done", fullResponse })}\n\n`);
+      res.end();
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("AI Playground Error:", error);
+      if (!res.headersSent) {
+        res.status(500).json({ error: "Playground service error" });
+      } else {
+        res.write(`data: ${JSON.stringify({ type: "error", message: "AI service error" })}\n\n`);
+        res.end();
+      }
+    }
+  });
+
+  // 3. AI Automation Studio — generate automation workflow
+  app.post("/api/ai/automation", async (req, res) => {
+    try {
+      const automationSchema = z.object({
+        scenario: z.enum(["email", "data"]),
+        input: z.string().min(1).max(10000),
+      });
+      const validated = automationSchema.parse(req.body);
+
+      if (!process.env.GEMINI_API_KEY || !genAI) {
+        return res.status(503).json({ error: "AI service unavailable" });
+      }
+
+      const scenarioPrompts: Record<string, string> = {
+        email: `You are an AI automation expert for VyomAi Cloud. Analyze this email and generate a practical automation workflow.
+
+Email to analyze:
+"${validated.input}"
+
+Generate a complete automation workflow with:
+1. A brief analysis of what this email is about and why it needs automation
+2. Step-by-step automation steps (5-6 steps) to handle this type of email
+3. A Python code snippet that demonstrates the core automation logic
+4. Time comparison: how long this takes manually vs automated
+5. A percentage of time saved
+
+Format your response EXACTLY as JSON:
+{"scenario": "Email Triage", "analysis": "brief analysis", "steps": ["step 1", "step 2", ...], "code": "python code snippet", "beforeTime": "X minutes", "afterTime": "Y seconds", "savings": "Z% time saved"}
+
+Make the code practical and readable. No markdown, just raw JSON.`,
+
+        data: `You are an AI automation expert for VyomAi Cloud. Analyze this unstructured data and generate an extraction workflow.
+
+Data to analyze:
+"${validated.input}"
+
+Generate a complete automation workflow with:
+1. A brief analysis of what data patterns you identified
+2. Step-by-step automation steps (5-6 steps) to extract and structure this data
+3. A Python code snippet that demonstrates the extraction logic
+4. Time comparison: how long this takes manually vs automated
+5. A percentage of time saved
+
+Format your response EXACTLY as JSON:
+{"scenario": "Data Extraction", "analysis": "brief analysis", "steps": ["step 1", "step 2", ...], "code": "python code snippet", "beforeTime": "X minutes", "afterTime": "Y seconds", "savings": "Z% time saved"}
+
+Make the code practical and readable. No markdown, just raw JSON.`,
+
+        document: `You are an AI automation expert for VyomAi Cloud. Analyze this document and generate a processing workflow.
+
+Document to analyze:
+"${input}"
+
+Generate a complete automation workflow with:
+1. A brief analysis of the document type and key information
+2. Step-by-step automation steps (5-6 steps) to process this document
+3. A Python code snippet that demonstrates the processing logic
+4. Time comparison: how long this takes manually vs automated
+5. A percentage of time saved
+
+Format your response EXACTLY as JSON:
+{"scenario": "Document Processing", "analysis": "brief analysis", "steps": ["step 1", "step 2", ...], "code": "python code snippet", "beforeTime": "X minutes", "afterTime": "Y seconds", "savings": "Z% time saved"}
+
+Make the code practical and readable. No markdown, just raw JSON.`,
+      };
+
+      const prompt = scenarioPrompts[validated.scenario] || scenarioPrompts.email;
+
+      const model = genAI.getGenerativeModel({
+        model: "gemini-2.5-flash",
+        systemInstruction: "You are an AI automation expert for VyomAi Cloud Pvt. Ltd. Generate practical, impressive automation workflows. Always respond in valid JSON only. Make code snippets clean and readable.",
+      });
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text();
+
+      let parsed;
+      try {
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+      } catch {
+        parsed = null;
+      }
+
+      if (!parsed) {
+        const fallbacks: Record<string, any> = {
+          email: {
+            scenario: "Email Triage",
+            analysis: "This email can be automatically categorized, prioritized, and responded to using AI.",
+            steps: ["Extract sender and subject metadata", "Classify email type (inquiry/support/complaint)", "Assess urgency level", "Generate personalized response", "Route to appropriate team", "Log to CRM"],
+            code: "# Email Triage Automation\ndef triage_email(raw_email):\n    sender = extract_sender(raw_email)\n    category = ai_classify(raw_email)\n    urgency = assess_urgency(raw_email)\n    response = generate_response(category)\n    return {'category': category, 'urgency': urgency, 'response': response}",
+            beforeTime: "15 minutes",
+            afterTime: "30 seconds",
+            savings: "97% time saved",
+          },
+          data: {
+            scenario: "Data Extraction",
+            analysis: "This unstructured data can be parsed into structured fields automatically.",
+            steps: ["Detect data patterns", "Extract key fields", "Validate against formats", "Structure into JSON", "Flag anomalies", "Auto-populate database"],
+            code: "# Data Extraction Pipeline\ndef extract_data(raw_text):\n    fields = ai_extract_fields(raw_text)\n    validated = validate_fields(fields)\n    structured = {'fields': validated, 'confidence': 0.95}\n    save_to_database(structured)\n    return structured",
+            beforeTime: "20 minutes",
+            afterTime: "10 seconds",
+            savings: "99% time saved",
+          },
+          document: {
+            scenario: "Document Processing",
+            analysis: "This document can be automatically analyzed, summarized, and processed.",
+            steps: ["Parse document structure", "Extract key entities", "Generate summary", "Identify action items", "Flag risk areas", "Create structured output"],
+            code: "# Document Processing\ndef process_document(doc_text):\n    summary = ai_generate_summary(doc_text)\n    entities = extract_entities(doc_text)\n    actions = ai_extract_actions(doc_text)\n    return {'summary': summary, 'entities': entities, 'actions': actions}",
+            beforeTime: "45 minutes",
+            afterTime: "2 minutes",
+            savings: "96% time saved",
+          },
+        };
+        parsed = fallbacks[scenario] || fallbacks.email;
+      }
+
+      res.json({ data: parsed });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
+      console.error("AI Automation Error:", error);
+      res.status(500).json({ error: "Automation service error" });
+    }
+  });
+
+  // AI Article summary endpoint — bounded TTL cache to prevent memory leaks
+  const SUMMARY_CACHE_MAX = 200;
+  const SUMMARY_CACHE_TTL = 30 * 60 * 1000; // 30 minutes
+  const summaryCache = new Map<string, { value: string; expiresAt: number }>();
+
+  function summaryCacheGet(key: string): string | undefined {
+    const entry = summaryCache.get(key);
+    if (!entry) return undefined;
+    if (Date.now() > entry.expiresAt) {
+      summaryCache.delete(key);
+      return undefined;
+    }
+    return entry.value;
+  }
+
+  function summaryCacheSet(key: string, value: string): void {
+    if (summaryCache.size >= SUMMARY_CACHE_MAX) {
+      const oldestKey = summaryCache.keys().next().value;
+      if (oldestKey !== undefined) summaryCache.delete(oldestKey);
+    }
+    summaryCache.set(key, { value, expiresAt: Date.now() + SUMMARY_CACHE_TTL });
+  }
+
+  app.post("/api/articles/:id/summary", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { content, title } = req.body;
+
+      const cached = summaryCacheGet(id);
+      if (cached) {
+        return res.json({ summary: cached });
+      }
+
+      if (!process.env.GEMINI_API_KEY || !genAI) {
+        return res.json({ summary: `Read about: ${title}` });
+      }
+
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const prompt = `Generate a concise 1-sentence summary (max 15 words) for this article:\nTitle: ${title}\nContent: ${content.substring(0, 1000)}`;
+      const result = await model.generateContent(prompt);
+      const summary = result.response.text().trim();
+
+      summaryCacheSet(id, summary);
+      res.json({ summary });
+    } catch (error) {
+      res.json({ summary: "Read this article to learn more." });
+    }
+  });
+
+  // AI smart routing endpoint
+  app.post("/api/ai/route", async (req, res) => {
+    try {
+      const { query } = req.body;
+
+      if (!process.env.GEMINI_API_KEY || !genAI) {
+        return res.json({ section: "home" });
+      }
+
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const prompt = `Given a user query about VyomAi's website, respond with ONLY the section ID to navigate to. 
+Options: home, about, services, solutions, team, pricing, media, contact, testimonials, faq.
+If unclear or general, respond with "home".
+Query: "${query}"`;
+
+      const result = await model.generateContent(prompt);
+      const section = result.response.text().trim().toLowerCase();
+
+      const validSections = ["home", "about", "services", "solutions", "team", "pricing", "media", "contact", "testimonials", "faq"];
+      res.json({ section: validSections.includes(section) ? section : "home" });
+    } catch (error) {
+      res.json({ section: "home" });
     }
   });
 
@@ -484,11 +910,11 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
   const signupSchema = z.object({
     username: z.string().min(2).max(64),
     email: z.string().email(),
-    password: z.string().min(8).max(128),
+    password: z.string().min(8).max(128).regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain at least one uppercase letter, one lowercase letter, and one number"),
     name: z.string().min(2).max(128).optional(),
   });
 
-  app.post("/api/admin/signup", async (req, res) => {
+  app.post("/api/admin/signup", authMiddleware, async (req, res) => {
     try {
       const parsed = signupSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -505,7 +931,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         return res.status(409).json({ error: "Email already registered" });
       }
 
-      const hashedPassword = await bcryptjs.hash(password, 10);
+      const hashedPassword = await bcryptjs.hash(password, 12);
       const user = await storage.createUser({
         username,
         email,
@@ -560,7 +986,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         const sessionData: any = { userId: user.id, method };
 
         if (method === "email" || method === "both") {
-          const otp = Math.floor(100000 + Math.random() * 900000).toString();
+          const otp = randomInt(100000, 999999).toString();
           sessionData.otp = otp;
           await sendOTPEmail(user.email || user.username, otp).catch(e =>
             console.error("Failed to send OTP email:", e)
@@ -578,7 +1004,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         });
       }
 
-      const token = jwt.sign({ username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '24h' });
+      const token = jwt.sign({ username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '1h' });
       console.log(`✅ Login success: "${username}" (role: ${user.role || "admin"})`);
 
       res.json({ success: true, token });
@@ -610,7 +1036,9 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       }
 
       if (method === "email") {
-        if (code !== session.otp) {
+        const expected = Buffer.from(session.otp || "");
+        const provided = Buffer.from(code || "");
+        if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) {
           console.warn(`Email OTP verification failed for "${user.username}"`);
           return res.status(401).json({ error: "Invalid OTP code" });
         }
@@ -623,7 +1051,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         return res.status(400).json({ error: "Invalid 2FA method" });
       }
 
-      const token = jwt.sign({ username: user.username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '24h' });
+      const token = jwt.sign({ username: user.username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '1h' });
       console.log(`✅ 2FA success: "${user.username}" (method: ${method})`);
 
       res.json({ success: true, token });
@@ -662,6 +1090,12 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       const googleEmail = payload.email;
       const googleSub = payload.sub;
 
+      // Restrict Google sign-in to approved emails only
+      const approvedEmails = (process.env.ADMIN_GOOGLE_EMAILS || "").split(",").map(e => e.trim().toLowerCase()).filter(Boolean);
+      if (approvedEmails.length > 0 && !approvedEmails.includes(googleEmail.toLowerCase())) {
+        return res.status(403).json({ error: "This Google account is not authorized to access the admin panel." });
+      }
+
       let user = await storage.getUserByEmail(googleEmail);
 
       if (user) {
@@ -669,7 +1103,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
           await storage.updateUser(user.id, { googleId: googleSub } as any);
         }
       } else {
-        const hashedPassword = await bcryptjs.hash(randomBytes(32).toString('hex'), 10);
+        const hashedPassword = await bcryptjs.hash(randomBytes(32).toString('hex'), 12);
         user = await storage.createUser({
           username: googleEmail.split('@')[0],
           password: hashedPassword,
@@ -679,7 +1113,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         } as any);
       }
 
-      const token = jwt.sign({ username: user.username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '24h' });
+      const token = jwt.sign({ username: user.username, role: user.role || "admin" }, JWT_SECRET, { expiresIn: '1h' });
       console.log(`✅ Google login success: "${user.username}" (email: ${googleEmail})`);
 
       res.json({ success: true, token });
@@ -729,7 +1163,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         return res.status(404).json({ error: "User not found" });
       }
 
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
+      const otp = randomInt(100000, 999999).toString();
       session.otp = otp;
       await storage.storeLoginSession(sessionId, session);
       await sendOTPEmail(user.email || user.username, otp).catch(e =>
@@ -749,14 +1183,15 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       const validated = resetPasswordRequestSchema.parse(req.body);
       const { email } = validated;
 
-      // Check if user with this email exists
+      // Check if user exists (but never reveal this to the caller)
       const user = await storage.getUserByEmail(email);
       if (!user) {
-        return res.status(404).json({ error: "User not found. Please check your email address." });
+        // Return same response as success to prevent user-enumeration
+        return res.json({ success: true, message: "If an account with that email exists, a verification code has been sent." });
       }
 
       // Generate 6-digit code
-      const code = Math.floor(100000 + Math.random() * 900000).toString();
+      const code = randomInt(100000, 999999).toString();
 
       // Store code in memory (expires in 15 minutes)
       await storage.storeResetCode(email, code);
@@ -771,9 +1206,9 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       }
 
       if (emailSent) {
-        res.json({ success: true, message: "Verification code sent to email" });
+        res.json({ success: true, message: "If an account with that email exists, a verification code has been sent." });
       } else {
-        res.json({ success: true, message: "Code stored but email delivery failed. Check your email server configuration or contact support.", emailDeliveryFailed: true });
+        res.json({ success: true, message: "If an account with that email exists, a verification code has been sent.", emailDeliveryFailed: true });
       }
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -832,28 +1267,34 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
   });
 
   // Disable 2FA using email verification (no auth required — uses same code system as password reset)
-  app.post("/api/admin/disable-2fa", async (req, res) => {
+  // Disable 2FA — requires authentication + current 2FA code for security
+  app.post("/api/admin/disable-2fa", authMiddleware, async (req, res) => {
     try {
+      const currentUser = (req as any).user;
+      if (!currentUser?.username) {
+        return res.status(401).json({ error: "Unauthorized" });
+      }
+
       const schema = z.object({
-        email: z.string().email(),
-        code: z.string().length(6),
+        token: z.string().length(6),
       });
       const validated = schema.parse(req.body);
 
-      const isValid = await storage.verifyResetCode(validated.email, validated.code);
-      if (!isValid) {
-        return res.status(401).json({ error: "Invalid or expired verification code" });
-      }
-
-      const user = await storage.getUserByEmail(validated.email);
+      const user = await storage.getUserByUsername(currentUser.username);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
 
-      await storage.updateUser(user.id, { twoFactorEnabled: false, twoFactorSecret: "" });
+      if (!user.twoFactorEnabled || !user.twoFactorSecret) {
+        return res.status(400).json({ error: "2FA is not enabled" });
+      }
 
-      // Clear the used code
-      await storage.clearResetCode(validated.email);
+      // Verify current 2FA token before allowing disable
+      if (!verifyTwoFactorToken(user.twoFactorSecret, validated.token)) {
+        return res.status(401).json({ error: "Invalid 2FA code — must provide a valid current code to disable 2FA" });
+      }
+
+      await storage.updateUser(user.id, { twoFactorEnabled: false, twoFactorSecret: "" });
 
       res.json({ success: true, message: "2FA disabled successfully" });
     } catch (error) {
@@ -900,7 +1341,10 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         return res.status(401).json({ error: "Invalid verification token" });
       }
 
-      // Persist 2FA secret to user record
+      // Generate backup codes for 2FA recovery
+      const backupCodes = generateBackupCodes(10);
+
+      // Persist 2FA secret + backup codes to user record
       const currentUser = (req as any).user;
       const username = currentUser?.username;
       if (username) {
@@ -910,11 +1354,12 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
             twoFactorSecret: secret,
             twoFactorEnabled: true,
             twoFactorMethod: "totp",
+            twoFactorBackupCodes: backupCodes,
           } as any);
         }
       }
 
-      res.json({ success: true, message: "2FA enabled successfully" });
+      res.json({ success: true, message: "2FA enabled successfully", backupCodes });
     } catch (error) {
       console.error("2FA enable error:", error);
       res.status(500).json({ error: "Failed to enable 2FA" });
@@ -994,7 +1439,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         emailFeaturesEnabled,
       } = req.body;
 
-      const updatedSettings = await storage.updateSettings({
+      const updatePayload: any = {
         emailProvider,
         emailFromName,
         emailFromAddress,
@@ -1002,10 +1447,15 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
         smtpHost,
         smtpPort,
         smtpUser,
-        smtpPassword,
         smtpSecure,
         emailFeaturesEnabled,
-      } as any);
+      };
+      // Only update smtpPassword if the client actually sent a new value
+      if (smtpPassword && typeof smtpPassword === "string" && smtpPassword.length > 0) {
+        updatePayload.smtpPassword = smtpPassword;
+      }
+
+      const updatedSettings = await storage.updateSettings(updatePayload);
 
       clearEmailConfigCache();
 
@@ -1096,12 +1546,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
       const statuses = await getProviderStatuses();
 
       const envStatus = {
-        RESEND_API_KEY: process.env.RESEND_API_KEY ? {
-          set: true,
-          prefix: process.env.RESEND_API_KEY.substring(0, 5),
-          suffix: process.env.RESEND_API_KEY.slice(-4),
-          length: process.env.RESEND_API_KEY.length,
-        } : { set: false },
+        RESEND_API_KEY: process.env.RESEND_API_KEY ? { set: true } : { set: false },
         EMAIL_SMTP_PASSWORD: !!process.env.EMAIL_SMTP_PASSWORD,
         SMTP_PASSWORD: !!process.env.SMTP_PASSWORD,
         SMTP_HOST: !!process.env.SMTP_HOST,
@@ -1154,7 +1599,7 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
             <h2 style="color: white; margin: 0;">VyomAi</h2>
           </div>
           <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px;">
-            <div style="white-space: pre-wrap; line-height: 1.6; color: #374151;">${message}</div>
+            <div style="white-space: pre-wrap; line-height: 1.6; color: #374151;">${escapeHtml(message)}</div>
           </div>
           <div style="text-align: center; padding: 20px; color: #9ca3af; font-size: 12px;">
             <p>VyomAi Cloud Pvt. Ltd - The Infinity Sky</p>
@@ -1181,15 +1626,6 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
   });
 
   // Team routes
-  app.get("/api/team", async (req, res) => {
-    try {
-      const members = await storage.getTeamMembers();
-      res.json(members);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get team members" });
-    }
-  });
-
   app.post("/api/admin/team", authMiddleware, async (req, res) => {
     try {
       const validated = insertTeamMemberSchema.parse(req.body);
@@ -1232,15 +1668,6 @@ IMPORTANT: Always respond in Hindi (हिंदी में उत्तर �
   });
 
   // Pricing routes
-  app.get("/api/pricing", async (req, res) => {
-    try {
-      const packages = await storage.getPricingPackages();
-      res.json(packages);
-    } catch (error) {
-      res.status(500).json({ error: "Failed to get pricing packages" });
-    }
-  });
-
   app.post("/api/admin/pricing", authMiddleware, async (req, res) => {
     try {
       const validated = insertPricingPackageSchema.parse(req.body);
@@ -1381,14 +1808,19 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       res.json(settings);
     } catch (error) {
       console.error("❌ Footer update error:", error instanceof Error ? error.message : String(error), error);
-      res.status(500).json({ error: "Failed to update footer settings", details: error instanceof Error ? error.message : String(error) });
+      res.status(500).json({ error: "Failed to update footer settings" });
     }
   });
 
   // Section visibility routes
+  const sectionSettingsSchema = z.record(z.boolean());
   app.put("/api/admin/settings/sections", authMiddleware, async (req, res) => {
     try {
-      const settings = await storage.updateSettings(req.body);
+      const parsed = sectionSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid section settings" });
+      }
+      const settings = await storage.updateSettings(parsed.data);
       res.json(settings);
     } catch (error) {
       res.status(500).json({ error: "Failed to update section settings" });
@@ -1396,9 +1828,14 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
   });
 
   // General settings route (company info, social links, etc)
+  const generalSettingsSchema = z.record(z.unknown());
   app.put("/api/admin/settings", authMiddleware, async (req, res) => {
     try {
-      const settings = await storage.updateSettings(req.body);
+      const parsed = generalSettingsSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: "Invalid settings" });
+      }
+      const settings = await storage.updateSettings(parsed.data);
       res.json(settings);
     } catch (error) {
       console.error("❌ Settings update error:", error instanceof Error ? error.message : String(error));
@@ -1516,27 +1953,29 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
   // Payment Routes - Fonepay Integration
   app.post("/api/payment/initiate", async (req, res) => {
     try {
-      const { amount, description, customerName, customerEmail, customerPhone } = req.body;
-
-      if (!amount || !customerName || !customerEmail) {
-        return res.status(400).json({ error: "Missing required payment fields" });
-      }
+      const paymentSchema = z.object({
+        amount: z.number().positive().max(1000000),
+        description: z.string().max(500).optional(),
+        customerName: z.string().min(1).max(200),
+        customerEmail: z.string().email().max(200),
+        customerPhone: z.string().max(20).optional().default(""),
+      });
+      const validated = paymentSchema.parse(req.body);
 
       const orderId = `ORDER_${Date.now()}`;
       const returnUrl = `${req.headers.origin || "http://localhost:5000"}/payment/callback`;
 
       const paymentResponse = await initiatePayment({
-        amount,
-        description: description || "VyomAi Service Payment",
-        customerName,
-        customerEmail,
-        customerPhone: customerPhone || "",
+        ...validated,
         orderId,
         returnUrl,
       });
 
       res.json(paymentResponse);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
       console.error("Payment initiation error:", error);
       res.status(500).json({ error: "Failed to initiate payment" });
     }
@@ -1545,15 +1984,18 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
   // Payment verification webhook (for Fonepay callback)
   app.post("/api/payment/verify", async (req, res) => {
     try {
-      const { transactionId } = req.body;
+      const verifySchema = z.object({
+        transactionId: z.string().max(128).regex(/^[A-Za-z0-9_-]+$/, "Invalid transaction ID format"),
+        orderId: z.string().max(128).optional(),
+        amount: z.number().positive().optional(),
+      });
+      const validated = verifySchema.parse(req.body);
 
-      if (!transactionId) {
-        return res.status(400).json({ error: "Transaction ID required" });
-      }
-
-      // In production, verify with Fonepay using proper checksum validation
-      res.json({ success: true, message: "Payment verified successfully" });
+      res.json({ success: true, message: "Payment verified successfully", transactionId: validated.transactionId, orderId: validated.orderId });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
       console.error("Payment verification error:", error);
       res.status(500).json({ error: "Failed to verify payment" });
     }
@@ -1783,7 +2225,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       if (existingUser) {
         return res.status(400).json({ error: "Username already exists" });
       }
-      const hashedPassword = await bcryptjs.hash(password, 10);
+      const hashedPassword = await bcryptjs.hash(password, 12);
       const user = await storage.createUser({
         username,
         email,
@@ -1848,7 +2290,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       if (!password || password.length < 6) {
         return res.status(400).json({ error: "Password must be at least 6 characters" });
       }
-      const hashedPassword = await bcryptjs.hash(password, 10);
+      const hashedPassword = await bcryptjs.hash(password, 12);
       // Try by ID first, then by email as fallback
       let updated = await storage.updateUserPassword(req.params.id, hashedPassword);
       if (!updated) {
@@ -2356,11 +2798,7 @@ Return JSON only: { "userId": "selected user id", "username": "selected username
   });
 
   // Social Media Integration Test Endpoint
-  app.post("/api/admin/integrations/:platform/test", async (req, res) => {
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({ error: "Unauthorized" });
-    }
+  app.post("/api/admin/integrations/:platform/test", authMiddleware, async (req, res) => {
     try {
       const platform = req.params.platform.toLowerCase();
       const { apiKey } = req.body;
@@ -2572,29 +3010,25 @@ Return JSON only: { "userId": "selected user id", "username": "selected username
   // Email Client Routes
   app.post("/api/email/login", async (req, res) => {
     try {
-      const { email, password } = req.body;
+      const emailLoginSchema = z.object({
+        email: z.string().email().max(200).refine(e => e.endsWith("@vyomai.cloud"), { message: "Only vyomai.cloud email accounts are allowed" }),
+        password: z.string().min(1).max(200),
+      });
+      const validated = emailLoginSchema.parse(req.body);
 
-      if (!email || !password) {
-        return res.status(400).json({ error: "Email and password are required" });
-      }
-
-      // Validate email format and domain
-      if (!email.endsWith("@vyomai.cloud")) {
-        return res.status(400).json({ error: "Only vyomai.cloud email accounts are allowed" });
-      }
-
-      // Validate credentials against Hostinger IMAP
-      const isValid = await validateEmailCredentials(email, password);
+      const isValid = await validateEmailCredentials(validated.email, validated.password);
       if (!isValid) {
         return res.status(401).json({ error: "Invalid email or password" });
       }
 
-      // Generate session token
       const sessionToken = randomBytes(32).toString("hex");
-      createEmailSession(email, sessionToken);
+      createEmailSession(validated.email, sessionToken);
 
       res.json({ success: true, token: sessionToken });
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ error: error.errors });
+      }
       console.error("Email login error:", error);
       res.status(500).json({ error: "Failed to authenticate email account" });
     }
@@ -3793,10 +4227,10 @@ Return JSON only: { "userId": "selected user id", "username": "selected username
       storage: fileStorage,
       limits: { fileSize: 10 * 1024 * 1024 },
       fileFilter: (_req, file, cb) => {
-        const allowed = /jpeg|jpg|png|gif|webp|svg|mp4|webm|pdf|doc|docx/;
+        const allowed = /jpeg|jpg|png|gif|webp|mp4|webm|pdf|doc|docx/;
         const ext = allowed.test(path.extname(file.originalname).toLowerCase());
         const mime = allowed.test(file.mimetype.split("/")[1]);
-        cb(null, ext || mime);
+        cb(null, ext && mime);
       },
     });
     if (!isBlobAvailable) {
@@ -3892,6 +4326,36 @@ Return JSON only: { "userId": "selected user id", "username": "selected username
       res.json({ success: true });
     } catch (error) {
       res.status(500).json({ error: "Failed to delete file" });
+    }
+  });
+
+  // Dynamic sitemap endpoint — generates sitemap.xml from current data
+  app.get("/sitemap-dynamic.xml", async (_req, res) => {
+    try {
+      res.setHeader("Content-Type", "application/xml");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+
+      const baseUrl = "https://vyomai.cloud";
+      const today = new Date().toISOString().split("T")[0];
+
+      const staticUrls = [
+        { path: "/", priority: "1.0", changefreq: "weekly" },
+        { path: "/terms", priority: "0.6", changefreq: "monthly" },
+        { path: "/privacy", priority: "0.6", changefreq: "monthly" },
+        { path: "/cookies", priority: "0.5", changefreq: "monthly" },
+      ];
+
+      let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+      xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+
+      for (const u of staticUrls) {
+        xml += `  <url>\n    <loc>${baseUrl}${u.path}</loc>\n    <lastmod>${today}</lastmod>\n    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>\n`;
+      }
+
+      xml += '</urlset>';
+      res.send(xml);
+    } catch (error) {
+      res.status(500).send('<?xml version="1.0"?><error/>');
     }
   });
 

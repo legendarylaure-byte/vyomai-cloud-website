@@ -2,6 +2,8 @@ import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import cors from "cors";
+import crypto from "crypto";
 import { registerRoutes } from "./routes.js";
 import { serveStatic } from "./static.js";
 import { createServer } from "http";
@@ -9,6 +11,10 @@ import session from "express-session";
 import createMemoryStore from "memorystore";
 
 const app = express();
+
+// ============== TRUST PROXY (required behind nginx/Vercel/CDN) ==============
+app.set('trust proxy', 1);
+
 const httpServer = createServer(app);
 
 declare module "http" {
@@ -55,22 +61,36 @@ const adminWriteLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-// Apply global rate limiter
-app.use(globalLimiter);
+// Apply global rate limiter (skip Vite dev asset paths in dev mode)
+app.use((req, res, next) => {
+  if (process.env.NODE_ENV === "development" && (req.path.startsWith("/@fs/") || req.path.startsWith("/src/") || req.path.startsWith("/node_modules/") || req.path.startsWith("/@react-refresh") || req.path.startsWith("/@vite/"))) {
+    return next();
+  }
+  return globalLimiter(req, res, next);
+});
 
 // Apply auth rate limiting to sensitive endpoints
 app.use("/api/admin/login", authLimiter);
 app.use("/api/admin/request-password-reset", authLimiter);
 app.use("/api/admin/verify-reset-code", authLimiter);
 app.use("/api/admin/reset-password", authLimiter);
+app.use("/api/admin/resend-otp", authLimiter);
+app.use("/api/admin/verify-2fa", authLimiter);
+app.use("/api/admin/disable-2fa", authLimiter);
 app.use("/api/email/login", authLimiter);
 
 // Apply write rate limiting to high-traffic public endpoints
 app.use("/api/chat", writeLimiter);
+app.use("/api/chat-stream", writeLimiter);
 app.use("/api/contact", writeLimiter);
 app.use("/api/bookings", writeLimiter);
 app.use("/api/inquiries", writeLimiter);
 app.use("/api/one-time-pricing-request", writeLimiter);
+app.use("/api/visitors/increment", writeLimiter);
+app.use("/api/ai/consult", writeLimiter);
+app.use("/api/ai/playground", writeLimiter);
+app.use("/api/ai/automation", writeLimiter);
+app.use("/api/payment/initiate", writeLimiter);
 
 // Apply admin write rate limiting
 app.use("/api/admin", adminWriteLimiter);
@@ -82,11 +102,25 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com", "https://accounts.google.com"],
+        scriptSrc: [
+          "'self'",
+          "https://fonts.googleapis.com",
+          "https://accounts.google.com",
+          "'sha256-Z2/iFzh9VMlVkEOar1f/oSHWwQk3ve1qk/C2WdsC4Xk='",
+          "'sha256-6aQGB29S/863IPFiFYo57IzRf38nM5MkgEaImlrD/fU='",
+        ],
+        scriptSrcElem: [
+          "'self'",
+          "https://fonts.googleapis.com",
+          "https://accounts.google.com",
+          "'sha256-Z2/iFzh9VMlVkEOar1f/oSHWwQk3ve1qk/C2WdsC4Xk='",
+          "'sha256-6aQGB29S/863IPFiFYo57IzRf38nM5MkgEaImlrD/fU='",
+          "'unsafe-inline'",
+        ],
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         connectSrc: ["'self'", "https://fonepay.com", "https://*.googleapis.com", "https://generativelanguage.googleapis.com", "https://accounts.google.com"],
-        imgSrc: ["'self'", "data:", "https:", "blob:"],
+        imgSrc: ["'self'", "data:", "https://images.unsplash.com", "https://fonts.gstatic.com", "https://lh3.googleusercontent.com", "https://ui-avatars.com", "blob:"],
         mediaSrc: ["'self'", "https:", "data:"],
         frameSrc: ["'self'", "https://www.youtube.com", "https://youtube.com", "https://player.vimeo.com", "https://vimeo.com", "https://accounts.google.com"],
         objectSrc: ["'none'"],
@@ -95,6 +129,17 @@ app.use(
         frameAncestors: ["'self'"],
         upgradeInsecureRequests: [],
       },
+    },
+    crossOriginResourcePolicy: { policy: "same-origin" },
+    permissionsPolicy: {
+      camera: [],
+      microphone: [],
+      geolocation: [],
+      payment: ["self"],
+      usb: [],
+      magnetometer: [],
+      gyroscope: [],
+      accelerometer: [],
     },
   }),
 );
@@ -129,6 +174,7 @@ app.use(
       httpOnly: true,
       sameSite: "strict",
       maxAge: 24 * 60 * 60 * 1000,
+      name: "vyomai.sid",
     },
   })
 );
@@ -157,6 +203,39 @@ app.use((req, res, next) => {
   });
 
   next();
+});
+
+// ============== CORS ==============
+
+const allowedOrigins = (process.env.CORS_ORIGINS || "https://vyomai.cloud,http://localhost:5000,http://localhost:5174").split(",");
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Request-ID"],
+  })
+);
+
+// ============== REQUEST ID ==============
+
+app.use((req, _res, next) => {
+  const requestId = req.headers["x-request-id"] as string || crypto.randomUUID();
+  req.headers["x-request-id"] = requestId;
+  next();
+});
+
+// ============== HEALTH CHECK ==============
+
+app.get("/api/health", (_req, res) => {
+  res.json({ status: "ok", uptime: process.uptime(), timestamp: new Date().toISOString() });
 });
 
 // ============== ROUTES ==============
@@ -191,6 +270,23 @@ if (process.env.VERCEL !== "1") {
       }).catch(err => console.error('Failed to load auto-sync scheduler:', err));
     },
   );
+
+  // ============== GRACEFUL SHUTDOWN ==============
+
+  const shutdown = (signal: string) => {
+    log(`${signal} received — shutting down gracefully`);
+    httpServer.close(() => {
+      log("HTTP server closed");
+      process.exit(0);
+    });
+    setTimeout(() => {
+      log("Forced shutdown after timeout");
+      process.exit(1);
+    }, 10000);
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
 
 export { app };

@@ -114,6 +114,7 @@ export function HomepageContentPage() {
   const [showMedia, setShowMedia] = useState(true);
   const [showTeam, setShowTeam] = useState(true);
   const [showPricing, setShowPricing] = useState(true);
+  const [showInteractiveAI, setShowInteractiveAI] = useState(true);
 
   useEffect(() => {
     if (settings) {
@@ -128,6 +129,7 @@ export function HomepageContentPage() {
       setShowMedia(settings.showMediaSection ?? true);
       setShowTeam(settings.showTeamSection ?? true);
       setShowPricing(settings.showPricingSection ?? true);
+      setShowInteractiveAI(settings.showInteractiveAISection ?? true);
     }
   }, [settings]);
 
@@ -210,6 +212,10 @@ export function HomepageContentPage() {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label className="text-sm">Team Section</Label>
               <Switch checked={showTeam} onCheckedChange={(v) => { setShowTeam(v); toggleSection("showTeamSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Interactive AI Section</Label>
+              <Switch checked={showInteractiveAI} onCheckedChange={(v) => { setShowInteractiveAI(v); toggleSection("showInteractiveAISection", v); }} />
             </div>
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label className="text-sm">Pricing Section</Label>

@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
 
@@ -19,6 +19,7 @@ export function ComingSoonModal({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md border-0 bg-gradient-to-br from-primary/10 via-accent/10 to-primary/10">
+        <DialogTitle className="sr-only">{title}</DialogTitle>
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}

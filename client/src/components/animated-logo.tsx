@@ -59,7 +59,7 @@ export function AnimatedLogo({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.6, duration: 0.5 }}
             >
-              <span className="text-lg font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent mb-1">
+              <span className="text-lg font-semibold bg-gradient-to-r from-brand-start to-brand-end bg-clip-text text-transparent mb-1">
                 VyomAi Cloud Pvt. Ltd
               </span>
               <span className="text-xs text-muted-foreground/70 tracking-[0.2em] font-light uppercase mb-3">
@@ -81,7 +81,7 @@ function LogoIcon({ size, variant }: { size: number; variant: string }) {
   
   return (
     <motion.div 
-      className="relative"
+      className={cn("relative", isLarge && "orbital-glow")}
       whileHover={{ scale: 1.05 }}
       transition={{ type: "spring", stiffness: 400, damping: 10 }}
     >
@@ -90,9 +90,9 @@ function LogoIcon({ size, variant }: { size: number; variant: string }) {
           className="absolute inset-[-8px] rounded-full"
           animate={{
             boxShadow: [
-              "0 0 30px rgba(139, 92, 246, 0.4), 0 0 60px rgba(139, 92, 246, 0.2)",
-              "0 0 50px rgba(139, 92, 246, 0.6), 0 0 100px rgba(249, 115, 22, 0.3)",
-              "0 0 30px rgba(139, 92, 246, 0.4), 0 0 60px rgba(139, 92, 246, 0.2)",
+              "0 0 30px rgba(138, 80, 232, 0.4), 0 0 60px rgba(192, 96, 208, 0.2)",
+              "0 0 50px rgba(192, 96, 208, 0.5), 0 0 100px rgba(224, 112, 64, 0.3)",
+              "0 0 30px rgba(138, 80, 232, 0.4), 0 0 60px rgba(192, 96, 208, 0.2)",
             ],
           }}
           transition={{
@@ -114,9 +114,9 @@ function LogoIcon({ size, variant }: { size: number; variant: string }) {
       >
         <defs>
           <linearGradient id={`gradient-${variant}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="hsl(262, 83%, 58%)" />
-            <stop offset="50%" stopColor="hsl(280, 80%, 55%)" />
-            <stop offset="100%" stopColor="hsl(24, 95%, 53%)" />
+            <stop offset="0%" stopColor="#8a50e8" />
+            <stop offset="50%" stopColor="#c060d0" />
+            <stop offset="100%" stopColor="#e07040" />
           </linearGradient>
         </defs>
         
@@ -160,7 +160,7 @@ function LogoIcon({ size, variant }: { size: number; variant: string }) {
               cx="15"
               cy="25"
               r="3"
-              fill="hsl(262, 83%, 58%)"
+              fill="#8a50e8"
               animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5], rotate: -360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               style={{ originX: "50px", originY: "50px", transformOrigin: "50px 50px" }}
@@ -169,7 +169,7 @@ function LogoIcon({ size, variant }: { size: number; variant: string }) {
               cx="85"
               cy="30"
               r="2.5"
-              fill="hsl(24, 95%, 53%)"
+              fill="#e07040"
               animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5], rotate: -360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 0.5 }}
               style={{ originX: "50px", originY: "50px", transformOrigin: "50px 50px" }}
@@ -178,7 +178,7 @@ function LogoIcon({ size, variant }: { size: number; variant: string }) {
               cx="80"
               cy="75"
               r="2"
-              fill="hsl(280, 80%, 55%)"
+              fill="#c060d0"
               animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5], rotate: -360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
               style={{ originX: "50px", originY: "50px", transformOrigin: "50px 50px" }}
@@ -187,7 +187,7 @@ function LogoIcon({ size, variant }: { size: number; variant: string }) {
               cx="20"
               cy="70"
               r="2"
-              fill="hsl(262, 83%, 58%)"
+              fill="#8a50e8"
               animate={{ scale: [1, 1.5, 1], opacity: [0.5, 1, 0.5], rotate: -360 }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1.5 }}
               style={{ originX: "50px", originY: "50px", transformOrigin: "50px 50px" }}
@@ -226,7 +226,7 @@ function AnimatedLogoText({ variant, fontSize }: { variant: string; fontSize: st
 
   return (
     <motion.div 
-      className={cn("flex items-center font-bold font-[Space_Grotesk]", fontSize)}
+      className={cn("flex items-center font-bold font-display", fontSize)}
       initial="initial"
       animate="animate"
     >
@@ -257,7 +257,7 @@ function AnimatedLogoText({ variant, fontSize }: { variant: string; fontSize: st
               }}
             >
               <motion.span
-                className="bg-gradient-to-r from-accent via-purple-400 to-primary bg-clip-text text-transparent"
+                className="bg-gradient-to-r from-brand-end via-brand-mid to-brand-start bg-clip-text text-transparent"
                 animate={{
                   backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                 }}
@@ -274,7 +274,7 @@ function AnimatedLogoText({ variant, fontSize }: { variant: string; fontSize: st
             </motion.span>
             {isLarge && (
               <motion.span
-                className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-accent to-primary rounded-full"
+                className="absolute -bottom-1 left-0 right-0 h-0.5 bg-gradient-to-r from-brand-end to-brand-start rounded-full"
                 initial={{ scaleX: 0 }}
                 animate={{ scaleX: [0, 1, 0] }}
                 transition={{
@@ -289,7 +289,7 @@ function AnimatedLogoText({ variant, fontSize }: { variant: string; fontSize: st
         ) : (
           <motion.span
             key={i}
-            className="inline-block bg-gradient-to-r from-primary via-purple-500 to-accent bg-clip-text text-transparent"
+            className="inline-block bg-gradient-to-r from-brand-start via-brand-mid to-brand-end bg-clip-text text-transparent"
             custom={i}
             variants={letterVariants}
           >
@@ -318,8 +318,8 @@ export function MiniLogo({ className }: { className?: string }) {
       >
         <defs>
           <linearGradient id="miniGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="hsl(262, 83%, 58%)" />
-            <stop offset="100%" stopColor="hsl(24, 95%, 53%)" />
+            <stop offset="0%" stopColor="#8a50e8" />
+            <stop offset="100%" stopColor="#e07040" />
           </linearGradient>
         </defs>
         <circle cx="50" cy="50" r="44" stroke="url(#miniGradient)" strokeWidth="4" fill="none" />
@@ -335,7 +335,7 @@ export function MiniLogo({ className }: { className?: string }) {
           style={{ originX: "50%", originY: "50%", transformOrigin: "center" }}
         />
       </motion.svg>
-      <span className="font-semibold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-[Space_Grotesk]">
+      <span className="font-semibold bg-gradient-to-r from-brand-start to-brand-end bg-clip-text text-transparent font-display">
         VyomAi
       </span>
     </motion.span>
@@ -352,14 +352,14 @@ export function AnimatedLogoShimmer({ className }: { className?: string }) {
       <svg width="22" height="22" viewBox="0 0 100 100" fill="none">
         <defs>
           <linearGradient id="shimmerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="hsl(262, 83%, 58%)" />
-            <stop offset="100%" stopColor="hsl(24, 95%, 53%)" />
+            <stop offset="0%" stopColor="#8a50e8" />
+            <stop offset="100%" stopColor="#e07040" />
           </linearGradient>
         </defs>
         <circle cx="50" cy="50" r="44" stroke="url(#shimmerGradient)" strokeWidth="4" fill="none" />
         <path d="M35 65 L50 35 L65 65" stroke="url(#shimmerGradient)" strokeWidth="6" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
-      <span className="text-sm font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent font-[Space_Grotesk]">
+      <span className="text-sm font-bold bg-gradient-to-r from-brand-start to-brand-end bg-clip-text text-transparent font-display">
         VyomAi
       </span>
       <motion.div

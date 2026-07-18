@@ -1,6 +1,9 @@
-import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Star, ChevronLeft, ChevronRight } from "lucide-react";
+import { Star, Quote } from "lucide-react";
+import { motion, useInView } from "framer-motion";
+import { useRef } from "react";
+import { SectionHeader } from "@/components/text-reveal";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface TestimonialItem {
   id: string;
@@ -12,91 +15,113 @@ interface TestimonialItem {
   rating?: number;
 }
 
-export function TestimonialsSection() {
-  const [current, setCurrent] = useState(0);
+const avatarLetters = (name: string) =>
+  name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
-  const { data: testimonials = [] } = useQuery<TestimonialItem[]>({
+export function TestimonialsSection() {
+  const { data: testimonials = [], isLoading } = useQuery<TestimonialItem[]>({
     queryKey: ["/api/testimonials"],
   });
 
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const isInView = useInView(sectionRef, { once: true, margin: "-8%" });
+
+  if (isLoading) {
+    return (
+      <section ref={sectionRef} id="testimonials" className="relative pb-20 pt-24 overflow-hidden section-a tint-pink" data-testid="section-testimonials">
+        <div className="absolute inset-0 mandala-pattern opacity-[0.02]" />
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 relative z-10">
+          <SectionHeader
+            badge="Testimonials"
+            title={<>What Our Clients <span className="gradient-brand-text">Say</span></>}
+            subtitle="Trusted by businesses in Nepal and beyond"
+          />
+        </div>
+        <div className="relative z-10 flex gap-6 px-8 overflow-hidden">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="w-[85vw] sm:w-[340px] md:w-[380px] shrink-0 h-64 rounded-3xl bg-foreground/5" />
+          ))}
+        </div>
+      </section>
+    );
+  }
+
   if (testimonials.length === 0) return null;
 
-  const t = testimonials[current];
-
-  const next = () => setCurrent((current + 1) % testimonials.length);
-  const prev = () => setCurrent((current - 1 + testimonials.length) % testimonials.length);
-
-  const avatarLetters = (name: string) =>
-    name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
+  const items = [...testimonials, ...testimonials];
 
   return (
-    <section className="py-20 bg-gradient-to-br from-purple-50 via-white to-orange-50">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent">
-            What Our Clients Say
-          </h2>
-          <p className="text-muted-foreground mt-3">Trusted by businesses in Nepal and beyond</p>
-        </div>
+    <section ref={sectionRef} id="testimonials" className="relative pb-20 pt-24 overflow-hidden section-a tint-pink" data-testid="section-testimonials">
+      <div className="absolute inset-0 mandala-pattern opacity-[0.02]" />
 
-        <div className="relative">
-          <div className="bg-white rounded-2xl shadow-lg border border-purple-100 p-8 md:p-12 text-center">
-            <div className="flex justify-center mb-4">
-              {t.avatarUrl ? (
-                <img src={t.avatarUrl} alt={t.name} className="w-16 h-16 rounded-full object-cover border-2 border-purple-200" />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-orange-400 flex items-center justify-center text-white font-bold text-lg">
-                  {avatarLetters(t.name)}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 relative z-10">
+        <SectionHeader
+          badge="Testimonials"
+          title={<>What Our Clients <span className="gradient-brand-text">Say</span></>}
+          subtitle="Trusted by businesses in Nepal and beyond"
+        />
+      </div>
+
+      {/* Auto-scrolling marquee — accelerates when in view */}
+      <div className="relative z-10">
+        {/* Fade edges */}
+        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+
+        <motion.div
+          className="flex animate-marquee"
+          style={{ width: "max-content" }}
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : { opacity: 0 }}
+          transition={{ duration: 0.7 }}
+        >
+          {items.map((t, index) => (
+            <motion.div
+              key={`${t.id}-${index}`}
+              className="w-[85vw] sm:w-[340px] md:w-[380px] shrink-0 mx-3"
+              initial={{ opacity: 0, y: 60, filter: "blur(12px)", scale: 0.92 }}
+              animate={isInView ? { opacity: 1, y: 0, filter: "blur(0px)", scale: 1 } : {}}
+              transition={{ duration: 0.7, delay: Math.min(index * 0.05, 0.5) }}
+            >
+              <div className="glass-card rounded-2xl p-6 h-full transition-all duration-300 card-hover-glow shimmer-hover">
+                <div className="flex items-start gap-3 mb-4">
+                  <Quote className="w-8 h-8 text-brand-start/30 shrink-0 mt-1" />
+                  <blockquote className="text-foreground/80 italic leading-relaxed text-[15px]">
+                    &ldquo;{t.content}&rdquo;
+                  </blockquote>
                 </div>
-              )}
-            </div>
 
-            <div className="flex justify-center gap-1 mb-4">
-              {Array.from({ length: t.rating || 5 }).map((_, i) => (
-                <Star key={i} className="w-5 h-5 fill-yellow-400 text-yellow-400" />
-              ))}
-            </div>
-
-            <blockquote className="text-lg text-gray-700 italic leading-relaxed mb-6">
-              &ldquo;{t.content}&rdquo;
-            </blockquote>
-
-            <div>
-              <p className="font-semibold text-gray-800">{t.name}</p>
-              {[t.role, t.company].filter(Boolean).length > 0 && (
-                <p className="text-sm text-purple-600">{[t.role, t.company].filter(Boolean).join(" · ")}</p>
-              )}
-            </div>
-          </div>
-
-          {testimonials.length > 1 && (
-            <div className="flex items-center justify-center gap-4 mt-6">
-              <button
-                onClick={prev}
-                className="w-10 h-10 rounded-full bg-white border border-purple-200 flex items-center justify-center hover:bg-purple-50 transition-colors"
-              >
-                <ChevronLeft className="w-5 h-5 text-purple-600" />
-              </button>
-              <div className="flex gap-2">
-                {testimonials.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setCurrent(i)}
-                    className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                      i === current ? "bg-purple-600" : "bg-purple-200"
-                    }`}
-                  />
-                ))}
+                <div className="flex items-center gap-3 pt-4 border-t border-border/50">
+                  {t.avatarUrl ? (
+                    <img src={t.avatarUrl} alt={t.name} loading="lazy" width="40" height="40" className="w-10 h-10 rounded-full object-cover border-2 border-brand-start/20" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full gradient-brand flex items-center justify-center text-foreground font-bold text-sm">
+                      {avatarLetters(t.name)}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-foreground text-[15px]">{t.name}</p>
+                    {[t.role, t.company].filter(Boolean).length > 0 && (
+                      <p className="text-xs text-primary truncate">{[t.role, t.company].filter(Boolean).join(" · ")}</p>
+                    )}
+                  </div>
+                  <div className="flex gap-0.5 shrink-0" aria-label={`Rated ${t.rating || 5} out of 5 stars`}>
+                    {Array.from({ length: t.rating || 5 }).map((_, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ opacity: 0, scale: 0 }}
+                        animate={isInView ? { opacity: 1, scale: 1 } : {}}
+                        transition={{ delay: 0.5 + i * 0.1, type: "spring", stiffness: 300 }}
+                      >
+                        <Star className="w-3.5 h-3.5 fill-yellow-400 text-yellow-400" />
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <button
-                onClick={next}
-                className="w-10 h-10 rounded-full bg-white border border-purple-200 flex items-center justify-center hover:bg-purple-50 transition-colors"
-              >
-                <ChevronRight className="w-5 h-5 text-purple-600" />
-              </button>
-            </div>
-          )}
-        </div>
+            </motion.div>
+          ))}
+        </motion.div>
       </div>
     </section>
   );

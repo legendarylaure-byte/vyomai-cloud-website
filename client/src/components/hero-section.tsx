@@ -1,172 +1,188 @@
-import { ArrowDown, Zap, Globe, Bot } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { motion } from "framer-motion";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef, useState, useMemo } from "react";
+import { useScroll, useTransform, motion } from "framer-motion";
+import { Sparkles } from "lucide-react";
+import { openGlobalConsultant } from "@/components/ai-consultant";
+import { FloatingParticles } from "@/components/floating-particles";
 
-interface HeroContent {
-  id: string;
-  badgeText: string;
-  titleLine1: string;
-  titleLine2: string;
-  subtitle: string;
-  primaryButtonText: string;
-  primaryButtonLink: string;
-  secondaryButtonText?: string;
-  secondaryButtonLink?: string;
-  backgroundStyle: string;
-  enabled: boolean;
-}
 
 export function HeroSection() {
-  const { data: heroData } = useQuery<{ content: HeroContent | null }>({
-    queryKey: ["/api/content/hero"],
-  });
+  const wordmarkRef = useRef<HTMLHeadingElement>(null);
+  const starsRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const [videoLoaded, setVideoLoaded] = useState(false);
 
-  const content = heroData?.content;
+  const titleWords = useMemo(() => [
+    { text: "AI", gradient: false },
+    { text: "Solutions", gradient: false },
+    { text: "from", gradient: false },
+    { text: "Nepal", gradient: true },
+    { text: "to", gradient: true },
+    { text: "the", gradient: true },
+    { text: "World", gradient: true },
+  ], []);
 
-  const handleNavigation = (href: string) => {
-    if (!href) return;
-    if (href.startsWith('#')) {
-      const element = document.querySelector(href);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
-    } else if (href.startsWith('http://') || href.startsWith('https://') || href.startsWith('/')) {
-      window.location.href = href;
-    } else {
-      const element = document.querySelector(`#${href}`);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth" });
-      }
+  const { scrollY } = useScroll();
+  const opacity = useTransform(scrollY, [0, window.innerHeight * 0.4], [1, 0]);
+  const scale = useTransform(scrollY, [0, window.innerHeight * 0.4], [1, 0.95]);
+
+  useEffect(() => {
+    let rafId: number | null = null;
+    const handleMouseMove = (e: MouseEvent) => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        if (!starsRef.current) { rafId = null; return; }
+        const x = ((e.clientX / window.innerWidth) - 0.5) * 40;
+        const y = ((e.clientY / window.innerHeight) - 0.5) * 22;
+        starsRef.current.style.transform = `translate(${x}px, ${y}px)`;
+        rafId = null;
+      });
+    };
+    window.addEventListener("mousemove", handleMouseMove, { passive: true });
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
+
+  useEffect(() => {
+    const wordmark = wordmarkRef.current;
+    if (wordmark) {
+      const text = wordmark.textContent?.trim() || "VyomAi Cloud";
+      wordmark.innerHTML = "";
+      [...text].forEach((char, index) => {
+        const wrapper = document.createElement("span");
+        wrapper.className = "letter-wrapper";
+        const inner = document.createElement("span");
+        inner.textContent = char === " " ? "\u00A0" : char;
+        inner.className = "letter-inner";
+        inner.style.animationDelay = `${1.8 + index * 0.06}s`;
+        wrapper.appendChild(inner);
+        wordmark.appendChild(wrapper);
+      });
     }
-  };
-
-  if (content?.enabled === false) {
-    return null;
-  }
-
-  const badgeText = content?.badgeText || "Pioneering AI Solutions from Nepal";
-  const titleLine1 = content?.titleLine1 || "Transform Your";
-  const titleLine2 = content?.titleLine2 || "Business with AI";
-  const subtitle = content?.subtitle || "We build intelligent AI agents and seamlessly integrate with Google, Microsoft, and enterprise platforms. Share knowledge, empower your team, and grow together.";
-  const primaryButtonText = content?.primaryButtonText || "Get Started";
-  const primaryButtonLink = content?.primaryButtonLink || "#contact";
-  const secondaryButtonText = content?.secondaryButtonText || "Explore Services";
-  const secondaryButtonLink = content?.secondaryButtonLink || "#services";
+  }, []);
 
   return (
     <section
       id="home"
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
+      ref={sectionRef}
+      className="hero-loopstack"
+      aria-label="Hero section"
       data-testid="section-hero"
     >
-      <div className="absolute inset-0 particle-bg" />
-      <div className="absolute inset-0 mandala-pattern opacity-30" />
-      
-      <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary/20 rounded-full blur-3xl animate-pulse-slow" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/15 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: "2s" }} />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/10 rounded-full blur-3xl" />
-
-      <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-        >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass mb-8">
-            <Zap className="w-4 h-4 text-accent" />
-            <span className="text-sm font-medium">{badgeText}</span>
-          </div>
-        </motion.div>
-
-        <motion.h1
-          className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight mb-6 font-[Space_Grotesk]"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.1 }}
-        >
-          <span className="gradient-text">{titleLine1}</span>
-          <br />
-          <span className="text-foreground">{titleLine2}</span>
-        </motion.h1>
-
-        <motion.p
-          className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-10 leading-relaxed"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-        >
-          {subtitle}
-        </motion.p>
-
-        <motion.div
-          className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.3 }}
-        >
-          <Button
-            size="lg"
-            className="px-8 py-6 text-lg rounded-xl"
-            onClick={() => handleNavigation(primaryButtonLink)}
-            data-testid="button-get-started"
-          >
-            <Bot className="w-5 h-5 mr-2" />
-            {primaryButtonText}
-          </Button>
-          {secondaryButtonText && (
-            <Button
-              variant="outline"
-              size="lg"
-              className="px-8 py-6 text-lg rounded-xl backdrop-blur-sm"
-              onClick={() => handleNavigation(secondaryButtonLink)}
-              data-testid="button-explore-services"
-            >
-              <Globe className="w-5 h-5 mr-2" />
-              {secondaryButtonText}
-            </Button>
-          )}
-        </motion.div>
-
-        <motion.div
-          className="grid grid-cols-2 sm:grid-cols-4 gap-6 max-w-3xl mx-auto"
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-        >
-          {[
-            { value: "50+", label: "AI Agents" },
-            { value: "100%", label: "Nepal Based" },
-            { value: "24/7", label: "Support" },
-            { value: "Global", label: "Reach" },
-          ].map((stat, index) => (
-            <div
-              key={index}
-              className="glass-card rounded-xl p-4 text-center hover-elevate"
-            >
-              <div className="text-2xl sm:text-3xl font-bold gradient-text mb-1">
-                {stat.value}
-              </div>
-              <div className="text-sm text-muted-foreground">{stat.label}</div>
-            </div>
-          ))}
-        </motion.div>
+      {/* Background video */}
+      <div className="hero-video-container">
+        <video autoPlay muted loop playsInline preload="metadata" onCanPlay={() => setVideoLoaded(true)} poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080'%3E%3Crect fill='%230D0B1A' width='100%25' height='100%25'%3E%3C/rect%3E%3C/svg%3E">
+          <source
+            src="https://api.getlayers.ai/storage/v1/object/public/public/assets/loopstack-f8c64439bf/flower.mp4"
+            type="video/mp4"
+          />
+        </video>
+        {/* Shimmer loading overlay */}
+        <div
+          className={`absolute inset-0 z-10 transition-opacity duration-1000 ${videoLoaded ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+          style={{ background: 'linear-gradient(135deg, #0D0B1A 0%, #1E1548 40%, #0D0B1A 60%, #1A1040 100%)', backgroundSize: '400% 400%', animation: 'hero-shimmer 2s ease-in-out infinite' }}
+          aria-hidden="true"
+        />
       </div>
 
-      <motion.div
-        className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1, duration: 0.5 }}
-      >
-        <button
-          onClick={() => handleNavigation("#about")}
-          className="p-3 glass rounded-full hover-elevate animate-bounce"
-          aria-label="Scroll to about section"
-        >
-          <ArrowDown className="w-5 h-5 text-primary" />
-        </button>
+      {/* Cosmic gradient overlay */}
+      <div className="hero-cosmic-bg" aria-hidden="true" />
+
+      {/* Twinkling star particles */}
+      <div className="hero-stars" ref={starsRef} aria-hidden="true" />
+
+      {/* Shooting stars / comets */}
+      <div className="hero-comets" aria-hidden="true">
+        <div className="hero-comet hero-comet-1" />
+        <div className="hero-comet hero-comet-2" />
+        <div className="hero-comet hero-comet-3" />
+      </div>
+
+      {/* Brand-colored twinkling stars */}
+      <div className="hero-brand-star hero-brand-star-1" aria-hidden="true" />
+      <div className="hero-brand-star hero-brand-star-2" aria-hidden="true" />
+      <div className="hero-brand-star hero-brand-star-3" aria-hidden="true" />
+
+      {/* Floating ambient particles */}
+      <FloatingParticles count={15} />
+
+      {/* Title — top center */}
+      <motion.div className="hero-content" style={{ opacity, scale }}>
+        <h1 className="hero-title-loopstack">
+          {titleWords.map((w, i) => (
+            <span key={i} className="word-wrapper">
+              <span
+                className={`word-inner${w.gradient ? " gradient-brand-text" : ""}`}
+                style={{ animationDelay: `${0.3 + i * 0.18}s` }}
+              >
+                {w.text}
+              </span>
+            </span>
+          ))}
+        </h1>
       </motion.div>
+
+      {/* CTA area — bottom left */}
+      <motion.div className="hero-cta-area" style={{ opacity, scale }}>
+        <div className="hero-tagline">
+          <h2 className="hero-tagline-heading">
+            Transform Your Business with AI
+          </h2>
+          <p className="hero-tagline-desc">
+            We build intelligent AI agents and seamlessly integrate with Google, Microsoft, and enterprise platforms. Share knowledge, empower your team, and grow together.
+          </p>
+        </div>
+        <motion.button
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => openGlobalConsultant()}
+          className="hero-btn-loopstack ai-consultant-trigger group"
+          aria-label="Open AI Business Consultant"
+          data-testid="button-ai-consultant"
+        >
+          <span className="ai-consultant-icon-wrap">
+            <Sparkles className="w-5 h-5 text-white" />
+          </span>
+          <span className="shiny-white-text">AI Business Consultant</span>
+          <span className="ai-pulse-dot" />
+        </motion.button>
+      </motion.div>
+
+      {/* Wordmark — bottom center */}
+      <motion.div className="hero-wordmark-wrap" style={{ opacity, scale }}>
+        <span ref={wordmarkRef} className="hero-wordmark-text" aria-label="VyomAi Cloud">
+          VyomAi Cloud
+        </span>
+      </motion.div>
+
+      {/* Scroll-down indicator */}
+      <div
+        className="scroll-indicator"
+        style={{ position: "absolute", bottom: "10vh", left: "50%", transform: "translateX(-50%)" }}
+        aria-hidden="true"
+      >
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-xs text-white/40 font-medium tracking-wider uppercase">Scroll</span>
+          <div className="w-6 h-10 rounded-full border-2 border-white/20 flex items-start justify-center p-1.5">
+            <motion.div
+              className="w-1.5 h-1.5 rounded-full bg-gradient-to-b from-primary to-accent"
+              animate={{
+                y: [0, 12, 0],
+                opacity: [1, 0.3, 1],
+              }}
+              transition={{
+                duration: 1.8,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom fade into first section */}
+      <div className="hero-bottom-fade" aria-hidden="true" />
     </section>
   );
 }

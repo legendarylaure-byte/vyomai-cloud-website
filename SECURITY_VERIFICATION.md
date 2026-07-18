@@ -17,7 +17,7 @@ VyomAi production-ready security implementation with verified authentication, pa
 # Login test
 curl -X POST http://localhost:5000/api/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
+  -d '{"username":"YOUR_ADMIN_USERNAME","password":"YOUR_ADMIN_PASSWORD"}'
 
 # Expected Response: {"success": true, "token": "hex_string"}
 ```
@@ -93,7 +93,7 @@ POST /api/payment/initiate
 ```bash
 curl -X POST http://localhost:5000/api/admin/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"admin","password":"admin123"}'
+  -d '{"username":"YOUR_ADMIN_USERNAME","password":"YOUR_ADMIN_PASSWORD"}'
 ```
 
 ### Setup 2FA
@@ -153,7 +153,7 @@ DATABASE_URL=postgresql://user:pass@host/vyomai
 
 ## Notes
 
-- Default credentials (admin/admin123) are for development only
+- Default credentials are for development only — change in production
 - 2FA is optional but recommended for production
 - Payment integration is in stub phase - complete with Fonepay API docs
 - Email notifications require valid SendGrid API key

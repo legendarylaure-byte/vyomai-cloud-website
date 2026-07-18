@@ -19,12 +19,31 @@ check_pattern() {
   done
 }
 
+# Existing patterns
 check_pattern 'gh[pousr]_[A-Za-z0-9_]+'               'GitHub token (ghp_/gho_/ghu_/ghs_/ghr_)'
 check_pattern 'AIzaSy[A-Za-z0-9_-]+'                   'Google API key (AIzaSy)'
 check_pattern 'GOCSPX-[A-Za-z0-9_-]+'                  'Google OAuth secret (GOCSPX)'
 check_pattern 'sk-[A-Za-z0-9]{20,}'                    'API secret key (sk-)'
 check_pattern 'AKIA[0-9A-Z]{16}'                        'AWS access key (AKIA)'
 check_pattern 'BEGIN (RSA |EC )?PRIVATE KEY'            'Private key PEM'
+
+# New patterns — Resend, Neon, Vercel Blob, Autonoma, JWT tokens, App passwords
+check_pattern 're_[A-Za-z0-9]{10,}'                    'Resend API key (re_)'
+check_pattern 'npg_[A-Za-z0-9]{10,}'                   'Neon DB password (npg_)'
+check_pattern 'vercel_blob_rw_[A-Za-z0-9_]+'           'Vercel Blob token'
+check_pattern 'eyJ[A-Za-z0-9_-]{100,}'                 'JWT/OIDC token (eyJ...)'
+
+# Check for .env files accidentally staged (but allow .env.example as a template)
+for file in $(git diff --cached --name-only --diff-filter=ACMRT); do
+  case "$file" in
+    .env|.env.*|.env*.local)
+      if [ "$file" != ".env.example" ]; then
+        echo "${RED}❌ BLOCKED: Secret file $file is staged — remove with 'git reset HEAD $file'${NC}"
+        violation=1
+      fi
+      ;;
+  esac
+done
 
 if [ "$violation" -eq 1 ]; then
   echo "${RED}Use: git commit --no-verify to override (if false positive)${NC}"

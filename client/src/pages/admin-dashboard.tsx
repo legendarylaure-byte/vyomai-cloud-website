@@ -13,6 +13,7 @@ import { PopupFormsPage } from "@/pages/admin/popup-forms";
 import { HomepageContentPage } from "@/pages/admin/homepage-content";
 import { UsersPage } from "@/pages/admin/users";
 import SocialMediaAdmin from "@/pages/admin/social-media";
+import { SeoHead } from "@/components/seo-head";
 
 import { SocialMediaIntegrationPage } from "@/pages/admin/social-media-integration";
 import { FaqPage } from "@/pages/admin/faq";
@@ -24,7 +25,7 @@ import { LeadDetailPage } from "@/pages/admin/lead-detail";
 function LoadingSpinner() {
   return (
     <div className="flex items-center justify-center h-64">
-      <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
     </div>
   );
 }
@@ -40,6 +41,8 @@ export default function AdminDashboardRouter() {
   }, [setLocation]);
 
   return (
+    <>
+    <SeoHead noindex title="Admin Dashboard - VyomAi Cloud" ogUrl="https://vyomai.cloud/admin" canonical="https://vyomai.cloud/admin" />
     <Switch>
 
       <Route>
@@ -69,5 +72,6 @@ export default function AdminDashboardRouter() {
         </AdminLayout>
       </Route>
     </Switch>
+    </>
   );
 }

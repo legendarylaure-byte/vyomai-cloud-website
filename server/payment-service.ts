@@ -85,11 +85,8 @@ export async function verifyPayment(transactionId: string): Promise<PaymentRespo
 }
 
 export function createPaymentChecksum(data: Record<string, any>): string {
-  // Implement Fonepay checksum algorithm
-  // Reference: Fonepay API documentation
+  const crypto = require("crypto");
   const secretKey = FONEPAY_SECRET_KEY || "";
   const message = Object.values(data).join("|");
-  
-  // Placeholder - actual implementation would use proper hashing
-  return Buffer.from(message + secretKey).toString("base64");
+  return crypto.createHmac("sha256", secretKey).update(message).digest("hex");
 }

@@ -36,6 +36,50 @@ export interface EmailConfig {
   smtpSecure?: boolean;
 }
 
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 1000;
+
+// SMTP connection pool: reuse a single transporter per host to avoid handshake overhead
+const transporterPool = new Map<string, Transporter>();
+
+function getTransporterKey(config: EmailConfig): string {
+  return `${config.smtpHost}:${config.smtpPort}:${config.smtpUser}`;
+}
+
+function getOrCreateTransporter(config: EmailConfig): Transporter {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const effectiveHost = resendApiKey ? "smtp.resend.com" : (config.smtpHost || undefined);
+  const effectiveUser = resendApiKey ? "resend" : (config.smtpUser || undefined);
+  const smtpPassword = resendApiKey || config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
+
+  if (!effectiveHost || !effectiveUser || !smtpPassword) {
+    throw new Error("SMTP configuration incomplete");
+  }
+
+  const key = getTransporterKey(config);
+  if (transporterPool.has(key)) {
+    return transporterPool.get(key)!;
+  }
+
+  const transporter = nodemailer.createTransport({
+    host: effectiveHost,
+    port: parseInt(config.smtpPort || "587"),
+    secure: config.smtpSecure || false,
+    auth: {
+      user: effectiveUser,
+      pass: smtpPassword,
+    },
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 10,
+  });
+
+  transporterPool.set(key, transporter);
+  return transporter;
+}
+
 function escapeHtml(text: string): string {
   const escapeMap: Record<string, string> = {
     "&": "&amp;",
@@ -47,30 +91,13 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"']/g, (char) => escapeMap[char] || char);
 }
 
-async function sendViaSMTP(options: EmailOptions, config: EmailConfig): Promise<EmailResult> {
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function sendViaSMTPWithRetry(options: EmailOptions, config: EmailConfig, attempt = 1): Promise<EmailResult> {
   try {
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const effectiveHost = resendApiKey ? "smtp.resend.com" : (config.smtpHost || undefined);
-    const effectiveUser = resendApiKey ? "resend" : (config.smtpUser || undefined);
-    const smtpPassword = resendApiKey || config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
-    const passwordSource = resendApiKey ? "RESEND_API_KEY env" : config.smtpPassword ? "config.smtpPassword (from DB)" : process.env.EMAIL_SMTP_PASSWORD ? "EMAIL_SMTP_PASSWORD env" : "empty";
-
-    console.log(`[email] sendViaSMTP: host=${effectiveHost}, user=${effectiveUser}, port=${config.smtpPort}, secure=${config.smtpSecure}, passwordSource=${passwordSource}, passwordLength=${smtpPassword.length}`);
-
-    if (!effectiveHost || !effectiveUser || !smtpPassword) {
-      return { success: false, error: "SMTP configuration incomplete" };
-    }
-
-    const transporter: Transporter = nodemailer.createTransport({
-      host: effectiveHost,
-      port: parseInt(config.smtpPort || "587"),
-      secure: config.smtpSecure || false,
-      auth: {
-        user: effectiveUser,
-        pass: smtpPassword,
-      },
-    });
-
+    const transporter = getOrCreateTransporter(config);
     const fromAddress = options.from || `"${config.fromName}" <${config.fromAddress}>`;
 
     const info = await transporter.sendMail({
@@ -84,8 +111,20 @@ async function sendViaSMTP(options: EmailOptions, config: EmailConfig): Promise<
 
     return { success: true, provider: "smtp", messageId: info.messageId };
   } catch (error: any) {
-    return { success: false, provider: "smtp", error: error.message || "SMTP send failed" };
+    const errMsg = error.message || "SMTP send failed";
+
+    if (attempt < MAX_RETRIES) {
+      console.log(`[email] Retry ${attempt}/${MAX_RETRIES} for ${options.to}: ${errMsg}`);
+      await sleep(RETRY_DELAY_MS * attempt);
+      return sendViaSMTPWithRetry(options, config, attempt + 1);
+    }
+
+    return { success: false, provider: "smtp", error: errMsg };
   }
+}
+
+async function sendViaSMTP(options: EmailOptions, config: EmailConfig): Promise<EmailResult> {
+  return sendViaSMTPWithRetry(options, config);
 }
 
 export async function sendEmailWithProvider(
@@ -97,22 +136,7 @@ export async function sendEmailWithProvider(
 
 export async function testProvider(provider: EmailProvider, config: EmailConfig): Promise<EmailResult> {
   try {
-    const resendApiKey = process.env.RESEND_API_KEY;
-    const effectiveHost = resendApiKey ? "smtp.resend.com" : (config.smtpHost || undefined);
-    const effectiveUser = resendApiKey ? "resend" : (config.smtpUser || undefined);
-    const smtpPassword = resendApiKey || config.smtpPassword || process.env.EMAIL_SMTP_PASSWORD || "";
-
-    if (!effectiveHost || !effectiveUser || !smtpPassword) {
-      return { success: false, error: "SMTP configuration incomplete" };
-    }
-
-    const transporter = nodemailer.createTransport({
-      host: effectiveHost,
-      port: parseInt(config.smtpPort || "587"),
-      secure: config.smtpSecure || false,
-      auth: { user: effectiveUser, pass: smtpPassword },
-    });
-
+    const transporter = getOrCreateTransporter(config);
     await transporter.verify();
     return { success: true, provider: "smtp" };
   } catch (error: any) {

@@ -24,6 +24,22 @@ const emailSessions = new Map<
 
 const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
+// Periodic cleanup: remove orphaned sessions older than 24 hours
+const SESSION_MAX_AGE = 24 * 60 * 60 * 1000;
+setInterval(() => {
+  const now = Date.now();
+  let cleaned = 0;
+  for (const [token, session] of emailSessions.entries()) {
+    if (now - session.lastAccess > SESSION_MAX_AGE) {
+      emailSessions.delete(token);
+      cleaned++;
+    }
+  }
+  if (cleaned > 0) {
+    console.log(`🧹 Email session cleanup: removed ${cleaned} expired session(s). ${emailSessions.size} remaining.`);
+  }
+}, 60 * 60 * 1000); // Run every 1 hour
+
 export async function validateEmailCredentials(
   email: string,
   password: string

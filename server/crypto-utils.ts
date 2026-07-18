@@ -130,12 +130,12 @@ export function generateSecret(length: number = 32): string {
  * @returns True if strings are equal
  */
 export function secureCompare(a: string, b: string): boolean {
-    if (a.length !== b.length) {
-        return false;
-    }
-
-    const bufferA = Buffer.from(a);
-    const bufferB = Buffer.from(b);
-
-    return crypto.timingSafeEqual(bufferA, bufferB);
+    // Use fixed-length comparison to prevent length-timing attacks.
+    // Pad the shorter string with null bytes so both buffers are the same length.
+    const maxLen = Math.max(a.length, b.length);
+    const bufA = Buffer.alloc(maxLen, 0);
+    const bufB = Buffer.alloc(maxLen, 0);
+    Buffer.from(a).copy(bufA);
+    Buffer.from(b).copy(bufB);
+    return crypto.timingSafeEqual(bufA, bufB);
 }

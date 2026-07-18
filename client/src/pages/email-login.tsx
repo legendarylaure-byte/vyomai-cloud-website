@@ -75,6 +75,10 @@ export default function EmailLogin() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Cosmic background matching home hero */}
+      <div className="hero-cosmic-bg" />
+      <div className="hero-stars" />
+
       {/* Enhanced Playful Background - Same as Admin Login */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-background via-[hsl(262_83%_58%/0.05)] to-[hsl(24_95%_53%/0.08)] animate-pulse" style={{ animationDuration: "8s" }} />
@@ -151,6 +155,7 @@ export default function EmailLogin() {
                           onClick={() => setShowPassword(!showPassword)}
                           className={`absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors ${passwordInputValue ? "animate-eye-blink" : ""}`}
                           data-testid="button-toggle-password"
+                          aria-label={showPassword ? "Hide password" : "Show password"}
                         >
                           {showPassword ? (
                             <EyeOff className="w-4 h-4" />

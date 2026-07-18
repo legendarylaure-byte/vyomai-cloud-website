@@ -1,7 +1,9 @@
 import { Bot, Brain, BarChart3, Cloud, Cog, Shield, Target, Users, Lightbulb, Heart, Building2, Mail, Calendar, FileText, Zap, Globe, Lock, Settings, Star, Rocket } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useScrollAnimation } from "@/hooks/use-scroll-animation";
 import { useQuery } from "@tanstack/react-query";
+import { motion, useScroll, useTransform } from "framer-motion";
+import { SectionHeader } from "@/components/text-reveal";
+import { useRef } from "react";
 
 interface ServicesContent {
   id: string;
@@ -35,8 +37,23 @@ const defaultServices = [
   { icon: "Shield", title: "Secure Solutions", description: "Enterprise-grade security ensuring your data and AI systems are protected at all times." },
 ];
 
+const containerVariants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.15, delayChildren: 0.1 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 60, filter: "blur(12px)", scale: 0.92 },
+  visible: { opacity: 1, y: 0, filter: "blur(0px)", scale: 1, transition: { duration: 0.7, ease: [0.32, 0.72, 0, 1] } },
+};
+
 export function ServicesSection() {
-  const { ref, isVisible } = useScrollAnimation();
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "end start"],
+  });
+  const mandalaY = useTransform(scrollYProgress, [0, 1], [0, 60]);
 
   const { data: servicesData } = useQuery<{ content: ServicesContent; items: ServiceItem[] }>({
     queryKey: ["/api/content/services"],
@@ -58,52 +75,60 @@ export function ServicesSection() {
   return (
     <section
       id="services"
-      className="relative py-24 bg-muted/30"
+      ref={sectionRef}
+      className="relative pb-20 pt-24 overflow-hidden section-a tint-lavender"
+      aria-labelledby="services"
       data-testid="section-services"
     >
-      <div className="absolute inset-0 particle-bg opacity-50" />
-      
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <div
-          ref={ref}
-          className={`scroll-fade-in ${isVisible ? "visible" : ""}`}
-        >
-          <div className="text-center mb-16">
-            <span className="inline-block px-4 py-1.5 rounded-full bg-accent/10 text-accent text-sm font-medium mb-4">
-              {badgeText}
-            </span>
-            <h2 className="text-4xl sm:text-5xl font-bold mb-6 font-[Space_Grotesk]">
-              <span className="text-foreground">{titleNormal}</span>
-              <span className="gradient-text">{titleHighlight}</span>
-            </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              {description}
-            </p>
-          </div>
+      {/* Parallax mandala */}
+      <motion.div
+        className="absolute inset-0 mandala-pattern opacity-[0.03]"
+        style={{ y: mandalaY }}
+      />
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+          <SectionHeader
+            badge={badgeText}
+            title={<>{titleNormal.trim()} <span className="gradient-brand-text">{titleHighlight.trim()}</span></>}
+            subtitle={description}
+            direction="left"
+          />
+
+          {/* Asymmetric bento: first card spans 2 cols, cards cascade from bottom with slight rotation */}
+          <motion.div
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-8%" }}
+          >
             {displayServices.map((service: any, index) => {
               const IconComponent = iconMap[service.icon] || Bot;
+              const isFirst = index === 0;
               return (
-                <Card
+                <motion.div
                   key={service.id || index}
-                  className="glass-card border-0 hover-elevate transition-all duration-300 group overflow-visible"
+                  variants={cardVariants}
+                  className={isFirst ? "md:col-span-2 lg:col-span-2" : ""}
                   data-testid={`card-service-${index}`}
                 >
-                  <CardContent className="p-6">
-                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
-                      <IconComponent className="w-7 h-7 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-semibold mb-3">{service.title}</h3>
-                    <p className="text-muted-foreground leading-relaxed">
-                      {service.description}
-                    </p>
-                  </CardContent>
-                </Card>
+                   <Card className="glass-card border-0 transition-all duration-300 group h-full overflow-visible card-hover-glow shimmer-hover">
+                    <CardContent className={`p-6 ${isFirst ? "lg:p-8" : ""}`}>
+                      <div className={`rounded-2xl flex items-center justify-center mb-5 value-icon-hover ${isFirst ? "w-16 h-16" : "w-14 h-14"}`} style={{ background: "linear-gradient(135deg, rgba(224,112,64,0.15), rgba(138,80,232,0.15))" }}>
+                        <IconComponent className={`text-accent ${isFirst ? "w-8 h-8" : "w-7 h-7"}`} />
+                      </div>
+                      <h3 className={`font-semibold mb-3 font-display ${isFirst ? "text-2xl" : "text-xl"}`}>
+                        {service.title}
+                      </h3>
+                      <p className="text-muted-foreground leading-relaxed">
+                        {service.description}
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
               );
             })}
-          </div>
-        </div>
+          </motion.div>
       </div>
     </section>
   );

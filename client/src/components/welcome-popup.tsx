@@ -32,6 +32,16 @@ export function WelcomePopup() {
     return () => clearTimeout(timer);
   }, [settings?.welcomePopupEnabled]);
 
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsVisible(false);
+    };
+    if (isVisible) {
+      document.addEventListener("keydown", handleEsc);
+      return () => document.removeEventListener("keydown", handleEsc);
+    }
+  }, [isVisible]);
+
   const handleDismiss = () => {
     setIsVisible(false);
     localStorage.setItem(POPUP_STORAGE_KEY, Date.now().toString());
@@ -86,13 +96,14 @@ export function WelcomePopup() {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.3 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
           onClick={handleBackdropClick}
           role="dialog"
           aria-modal="true"
           aria-labelledby="welcome-popup-title"
+          aria-describedby="welcome-popup-desc"
         >
-          <div className="absolute inset-0 bg-gradient-to-br from-purple-900/90 via-blue-900/90 to-purple-900/90 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0D0B1A]/90 via-[#1E1548]/90 to-[#0D0B1A]/90 backdrop-blur-sm" />
           
           <div className="absolute inset-0 overflow-hidden pointer-events-none">
             {[...Array(20)].map((_, i) => (
@@ -122,14 +133,14 @@ export function WelcomePopup() {
             animate="animate"
             exit="exit"
             transition={{ duration: 0.5, ease: "easeOut" }}
-            className={`relative bg-white/95 backdrop-blur-xl rounded-3xl p-8 md:p-12 max-w-lg w-full shadow-2xl text-center ${
+            className={`relative bg-white/95 dark:bg-background/95 backdrop-blur-xl rounded-3xl p-8 md:p-12 max-w-lg w-full shadow-2xl text-center ${
               animationStyle === "glow" ? "ring-4 ring-purple-400/50 ring-offset-4 ring-offset-transparent" : ""
             }`}
           >
             {settings.welcomePopupDismissable && (
               <button
                 onClick={handleDismiss}
-                className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-full transition-colors"
+                className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground hover:bg-muted rounded-full transition-colors"
                 aria-label="Close popup"
               >
                 <X className="w-5 h-5" />
@@ -149,7 +160,7 @@ export function WelcomePopup() {
                   className="w-24 h-24 mx-auto rounded-2xl object-cover shadow-lg"
                 />
               ) : (
-                <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center shadow-lg">
+                <div className="w-24 h-24 mx-auto rounded-2xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-lg">
                   <Sparkles className="w-12 h-12 text-white" />
                 </div>
               )}
@@ -160,7 +171,7 @@ export function WelcomePopup() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className="text-3xl md:text-4xl font-bold text-gray-900 mb-4"
+              className="text-3xl md:text-4xl font-bold text-foreground mb-4"
             >
               {settings.welcomePopupTitle || "Welcome"}
             </motion.h2>
@@ -169,7 +180,8 @@ export function WelcomePopup() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
-              className="text-gray-600 text-lg mb-8 leading-relaxed"
+              className="text-muted-foreground text-lg mb-8 leading-relaxed"
+              id="welcome-popup-desc"
             >
               {settings.aiGreetingEnabled && settings.aiGreetingText
                 ? settings.aiGreetingText
@@ -181,13 +193,13 @@ export function WelcomePopup() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
               onClick={handleDismiss}
-              className="group relative px-8 py-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-2xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all overflow-hidden"
+              className="group relative px-8 py-4 bg-gradient-to-r from-primary to-accent text-white rounded-2xl font-semibold text-lg shadow-xl hover:shadow-2xl transition-all overflow-hidden"
             >
               <span className="relative z-10">
                 {settings.welcomePopupButtonText || "Continue"}
               </span>
               <motion.div
-                className="absolute inset-0 bg-gradient-to-r from-purple-700 to-blue-700"
+                className="absolute inset-0 bg-gradient-to-r from-primary/80 to-accent/80"
                 initial={{ x: "-100%" }}
                 whileHover={{ x: "0%" }}
                 transition={{ duration: 0.3 }}
@@ -199,7 +211,7 @@ export function WelcomePopup() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.7 }}
-                className="text-sm text-gray-400 mt-6"
+                className="text-sm text-muted-foreground/60 mt-6"
               >
                 Press ESC or click outside to dismiss
               </motion.p>

@@ -263,6 +263,7 @@ export class MemStorage implements IStorage {
       showProjectDiscussionSection: true,
       showFaqSection: true,
       showTestimonialsSection: true,
+      showInteractiveAISection: true,
       bookingBotEnabled: true,
       publishFooter: true,
       defaultCurrency: "USD",
@@ -531,7 +532,12 @@ export class MemStorage implements IStorage {
       this.resetCodes.delete(email);
       return false;
     }
-    return stored.code === code;
+    // Timing-safe comparison to prevent timing attacks
+    const { timingSafeEqual } = await import("crypto");
+    const a = Buffer.from(stored.code);
+    const b = Buffer.from(code);
+    if (a.length !== b.length) return false;
+    return timingSafeEqual(a, b);
   }
 
   async resetPasswordByEmail(email: string, hashedPassword: string): Promise<boolean> {
@@ -1413,10 +1419,18 @@ if (isFirebaseAvailable) {
     console.log("⚡ Using Firebase Firestore storage");
   } catch (err) {
     console.error("❌ Firebase init failed, falling back to in-memory:", err);
+    if (process.env.NODE_ENV?.toLowerCase() === "production") {
+      console.error("❌ FATAL: MemStorage cannot be used in production. Exiting.");
+      process.exit(1);
+    }
     storage = new MemStorage();
     console.log("⚡ Using in-memory storage (MemStorage) [fallback]");
   }
 } else {
+  if (process.env.NODE_ENV?.toLowerCase() === "production") {
+    console.error("❌ FATAL: MemStorage cannot be used in production. Set FIREBASE_SERVICE_ACCOUNT. Exiting.");
+    process.exit(1);
+  }
   storage = new MemStorage();
   console.log("⚡ Using in-memory storage (MemStorage)");
 }

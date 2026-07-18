@@ -13,7 +13,7 @@ services:
       - SESSION_SECRET=${SESSION_SECRET}
       - DATABASE_URL=${DATABASE_URL:-}
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:?Set ADMIN_PASSWORD in .env}
       - EMAIL_SERVICE=${EMAIL_SERVICE:-sendgrid}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
     restart: unless-stopped
