@@ -122,6 +122,7 @@
     "bufferutil": "^4.0.8"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/mailparser": "^3.4.6",
     "@types/multer": "^2.1.0",

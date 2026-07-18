@@ -98,7 +98,7 @@ app.use("/api/admin", adminWriteLimiter);
 // ============== SECURITY HEADERS (CSP) ==============
 
 app.use(
-  helmet({
+  (helmet as any)({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
@@ -169,14 +169,14 @@ app.use(
     secret: process.env.SESSION_SECRET || (() => { throw new Error("SESSION_SECRET environment variable is required"); })(),
     resave: false,
     saveUninitialized: false,
+    name: "vyomai.sid",
     cookie: {
       secure: process.env.NODE_ENV?.toLowerCase() === "production",
       httpOnly: true,
       sameSite: "strict",
       maxAge: 24 * 60 * 60 * 1000,
-      name: "vyomai.sid",
     },
-  })
+  }) as any
 );
 
 // ============== LOGGING ==============
@@ -211,7 +211,7 @@ const allowedOrigins = (process.env.CORS_ORIGINS || "https://vyomai.cloud,http:/
 
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {

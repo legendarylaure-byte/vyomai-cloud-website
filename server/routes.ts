@@ -680,7 +680,7 @@ Make the code practical and readable. No markdown, just raw JSON.`,
         document: `You are an AI automation expert for VyomAi Cloud. Analyze this document and generate a processing workflow.
 
 Document to analyze:
-"${input}"
+"${validated.input}"
 
 Generate a complete automation workflow with:
 1. A brief analysis of the document type and key information
@@ -743,7 +743,7 @@ Make the code practical and readable. No markdown, just raw JSON.`,
             savings: "96% time saved",
           },
         };
-        parsed = fallbacks[scenario] || fallbacks.email;
+        parsed = fallbacks[validated.scenario] || fallbacks.email;
       }
 
       res.json({ data: parsed });
@@ -1966,7 +1966,11 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
       const returnUrl = `${req.headers.origin || "http://localhost:5000"}/payment/callback`;
 
       const paymentResponse = await initiatePayment({
-        ...validated,
+        amount: validated.amount,
+        description: validated.description || "VyomAi Service Payment",
+        customerName: validated.customerName,
+        customerEmail: validated.customerEmail,
+        customerPhone: validated.customerPhone,
         orderId,
         returnUrl,
       });

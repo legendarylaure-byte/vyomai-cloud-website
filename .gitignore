@@ -4,6 +4,9 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+*.png
+!client/public/assets/*.png
+!client/public/og-image.png
 .env
 .env.*
 .env*.local
@@ -19,5 +22,3 @@ uploads/
 VERCEL_DEPLOYMENT.md
 .playwright-mcp/
 test-results/
-*.png
-!client/public/assets/*.png
