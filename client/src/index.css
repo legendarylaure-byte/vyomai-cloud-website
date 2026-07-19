@@ -490,10 +490,7 @@ html {
     animation-play-state: paused;
   }
 
-  /* Hide video + stars + comets on mobile for performance */
-  .hero-video-container {
-    display: none !important;
-  }
+  /* Hide decorative animations on mobile for performance (keep video visible) */
   .hero-stars {
     display: none !important;
   }
