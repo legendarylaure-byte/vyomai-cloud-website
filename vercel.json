@@ -43,11 +43,5 @@
             "source": "/(.*)",
             "destination": "/api/index.ts"
         }
-    ],
-    "crons": [
-        {
-            "path": "/api/admin/social-media/sync-all",
-            "schedule": "0 0 * * *"
-        }
     ]
 }

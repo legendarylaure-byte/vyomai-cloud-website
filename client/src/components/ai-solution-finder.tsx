@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronRight, RotateCcw, Sparkles, Clock, TrendingUp, ArrowRight, ArrowLeft } from "lucide-react";
+import { Check, ChevronRight, RotateCcw, Sparkles, Clock, TrendingUp, ArrowRight, ArrowLeft } from "lucide-react";
 
 interface Solution {
   title: string;

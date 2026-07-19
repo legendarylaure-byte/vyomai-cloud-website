@@ -87,7 +87,7 @@ export default function Home() {
   }, []);
 
   const shouldShow = (setting: boolean | undefined) => {
-    return !settingsLoading && setting !== false || settingsLoading;
+    return settingsLoading || setting !== false;
   };
 
   return (

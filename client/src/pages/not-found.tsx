@@ -3,12 +3,14 @@ import { Home, ArrowLeft, Rocket } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { FloatingParticles } from "@/components/floating-particles";
+import { SeoHead } from "@/components/seo-head";
 
 export default function NotFound() {
   const [, setLocation] = useLocation();
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center section-a relative overflow-hidden">
+      <SeoHead title="Page Not Found" description="The page you're looking for doesn't exist or has been moved." noindex />
       {/* Background decorations */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-72 h-72 rounded-full bg-primary/5 blur-3xl animate-pulse" />
@@ -72,6 +74,7 @@ export default function NotFound() {
           <Button
             onClick={() => setLocation("/")}
             className="admin-btn-glow gap-2"
+            aria-label="Go Home"
           >
             <Home className="w-4 h-4" />
             Go Home
@@ -80,6 +83,7 @@ export default function NotFound() {
             variant="outline"
             onClick={() => window.history.back()}
             className="gap-2 hover:shadow-lg hover:shadow-primary/20 hover:-translate-y-0.5 transition-all"
+            aria-label="Go Back"
           >
             <ArrowLeft className="w-4 h-4" />
             Go Back

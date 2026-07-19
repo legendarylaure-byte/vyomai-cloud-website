@@ -71,10 +71,13 @@ export function FloatingWidgets({ onAIChatbotOpen }: FloatingWidgetsProps) {
     }
   }, [aiOpen, bookingOpen]);
 
-  // Back-to-top visibility after scrolling
+  // Back-to-top visibility and dock scroll state
   const [showBackToTop, setShowBackToTop] = useState(false);
   useEffect(() => {
-    const handleScroll = () => setShowBackToTop(window.scrollY > 600);
+    const handleScroll = () => {
+      setShowBackToTop(window.scrollY > 600);
+      setIsScrolled(window.scrollY > 100);
+    };
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -100,16 +103,6 @@ export function FloatingWidgets({ onAIChatbotOpen }: FloatingWidgetsProps) {
   const { data: settings } = useQuery<SiteSettings>({
     queryKey: ["/api/settings"],
   });
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrolled = window.scrollY > 100;
-      setIsScrolled(scrolled);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {

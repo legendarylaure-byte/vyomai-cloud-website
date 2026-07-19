@@ -105,6 +105,7 @@ export function TeamSection() {
                                 alt={member.name}
                                 width="112"
                                 height="112"
+                                loading="lazy"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden'); }}
                               />

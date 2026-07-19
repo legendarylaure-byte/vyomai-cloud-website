@@ -914,7 +914,7 @@ Query: "${query}"`;
     name: z.string().min(2).max(128).optional(),
   });
 
-  app.post("/api/admin/signup", authMiddleware, async (req, res) => {
+  app.post("/api/admin/signup", authMiddleware, adminMiddleware, async (req, res) => {
     try {
       const parsed = signupSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -1797,7 +1797,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
   });
 
   // Footer settings routes
-  app.put("/api/admin/footer", authMiddleware, async (req, res) => {
+  app.put("/api/admin/footer", authMiddleware, adminMiddleware, async (req, res) => {
     try {
       const { footerLogoUrl, footerContactEmail, footerAddress } = req.body;
       const settings = await storage.updateSettings({
@@ -1829,7 +1829,7 @@ Is this conversion accurate (within 1% tolerance)? Reply with JSON: {"accurate":
 
   // General settings route (company info, social links, etc)
   const generalSettingsSchema = z.record(z.unknown());
-  app.put("/api/admin/settings", authMiddleware, async (req, res) => {
+  app.put("/api/admin/settings", authMiddleware, adminMiddleware, async (req, res) => {
     try {
       const parsed = generalSettingsSchema.safeParse(req.body);
       if (!parsed.success) {
