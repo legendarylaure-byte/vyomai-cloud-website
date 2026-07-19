@@ -264,6 +264,7 @@ export class MemStorage implements IStorage {
       showFaqSection: true,
       showTestimonialsSection: true,
       showInteractiveAISection: true,
+      showConnectWithUs: true,
       bookingBotEnabled: true,
       publishFooter: true,
       defaultCurrency: "USD",
