@@ -207,7 +207,7 @@ app.use((req, res, next) => {
 
 // ============== CORS ==============
 
-const allowedOrigins = (process.env.CORS_ORIGINS || "https://vyomai.cloud,http://localhost:5000,http://localhost:5174,http://localhost:3000,http://localhost:5173").split(",");
+const allowedOrigins = (process.env.CORS_ORIGINS || "https://vyomai.cloud,https://www.vyomai.cloud,https://website-vyomai.cloud,http://localhost:5000,http://localhost:5174,http://localhost:3000,http://localhost:5173").split(",");
 
 app.use(
   cors({
