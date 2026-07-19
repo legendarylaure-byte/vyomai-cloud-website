@@ -112,7 +112,9 @@ export default function Home() {
         {shouldShow(settings?.showMediaSection) && <MediaSection />}
         {shouldShow(settings?.showMediaSection) && <OrbitalArc />}
         {shouldShow(settings?.showContactSection) && <ContactSection />}
+        {shouldShow(settings?.showContactSection) && <OrbitalArc />}
         {shouldShow(settings?.showTestimonialsSection) && <TestimonialsSection />}
+        {shouldShow(settings?.showTestimonialsSection) && <OrbitalArc />}
         {shouldShow(settings?.showFaqSection) && <FaqSection />}
         {shouldShow(settings?.showFaqSection) && <OrbitalArc />}
         {shouldShow(settings?.showConnectWithUs) && <ConnectWithUs />}

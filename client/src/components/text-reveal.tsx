@@ -21,7 +21,7 @@ export function TextReveal({
   gradient = false,
 }: TextRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: false, margin: "-10%" });
+  const isInView = useInView(ref, { once: true, margin: "-10%" });
 
   const text = children;
   let items: string[];
@@ -97,7 +97,7 @@ export function SectionHeader({
   direction = "up",
 }: SectionHeaderProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: false, margin: "-10%" });
+  const isInView = useInView(ref, { once: true, margin: "-10%" });
 
   const container = {
     hidden: {},

@@ -75,11 +75,10 @@ export function MediaSection() {
   return (
     <section
       id="media"
-      className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-a"
+      className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-a tint-warm"
       data-testid="section-media"
     >
       <div className="absolute inset-0 mandala-pattern opacity-[0.015]" />
-      <div className="absolute inset-0 tint-warm" />
       
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <motion.div

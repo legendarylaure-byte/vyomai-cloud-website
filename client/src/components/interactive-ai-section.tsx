@@ -23,7 +23,7 @@ export function InteractiveAISection() {
     <section id="interactive-ai" className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-a tint-lavender">
       <div className="absolute inset-0 mandala-pattern opacity-[0.02]" />
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <SectionHeader
           badge="Try It Yourself"
           title={<>Interactive <span className="gradient-brand-text">AI Experience</span></>}
@@ -72,7 +72,7 @@ export function InteractiveAISection() {
           aria-labelledby={`tab-${activeTab}`}
           className="rounded-3xl border border-border/30 bg-background/50 backdrop-blur-xl p-6 sm:p-8 shadow-xl"
         >
-          <AnimatePresence mode="wait">
+          <AnimatePresence>
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 12 }}

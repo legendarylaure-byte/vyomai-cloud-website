@@ -146,7 +146,7 @@ export function AboutSection() {
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: false, margin: "-5%" }}
+            viewport={{ once: true, margin: "-5%" }}
           >
             {displayValues.map((value: any, index) => {
               const IconComponent = iconMap[value.icon] || Target;
@@ -158,7 +158,7 @@ export function AboutSection() {
                         <IconComponent className="w-6 h-6 text-primary" />
                       </div>
                       <h3 className="text-lg font-semibold mb-2 text-foreground font-display">{value.title}</h3>
-                      <p className="text-sm text-foreground/60 leading-relaxed">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
                         {value.description}
                       </p>
                     </CardContent>
@@ -173,7 +173,7 @@ export function AboutSection() {
             className="mt-16"
             initial={{ opacity: 0, y: 60, filter: "blur(12px)", scale: 0.92 }}
             whileInView={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
-            viewport={{ once: false, margin: "-5%" }}
+            viewport={{ once: true, margin: "-5%" }}
             transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
           >
             <div className="grid lg:grid-cols-2 gap-8 items-center">
@@ -188,7 +188,7 @@ export function AboutSection() {
                 <h3 className="text-2xl sm:text-3xl font-bold mb-4 font-display text-foreground">
                   Why Choose VyomAi?
                 </h3>
-                <p className="text-foreground/60 leading-relaxed mb-6">
+                <p className="text-muted-foreground leading-relaxed mb-6">
                   We work hard and try to give you the best AI product solutions for your
                   organization with competitive consulting and platform integration services.
                   Our team combines traditional wisdom with cutting-edge technology.
@@ -224,7 +224,7 @@ export function AboutSection() {
                     <div className="text-4xl font-bold gradient-brand-text mb-2 font-display">
                       व्योम
                     </div>
-                    <div className="text-base text-foreground/60">
+                    <div className="text-base text-muted-foreground">
                       "Vyom" - The infinite sky
                     </div>
                     <div className="text-xs text-foreground/40 mt-2">

@@ -605,7 +605,7 @@ export function PricingSection() {
                     toast({ title: "Info", description: "No custom pricing packages available. Please contact us directly at info@vyomai.cloud" });
                   }
                 }}
-                className="bg-gradient-to-r from-primary via-[#c060d0] to-accent text-white border-0 shadow-lg shadow-brand-start/25"
+                className="bg-gradient-to-r from-primary via-brand-mid to-accent text-white border-0 shadow-lg shadow-brand-start/25"
               >
                 <Zap className="w-4 h-4 mr-2" />
                 Contact Our Team

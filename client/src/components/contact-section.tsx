@@ -127,7 +127,7 @@ export function ContactSection() {
                 <motion.div key={i} variants={fieldVariant} className="mb-6">
                   <div className="metallic-card rounded-2xl p-6 card-hover-glow shimmer-hover group">
                     <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-xl gradient-brand-subtle flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
+                      <div className="w-10 h-10 rounded-xl gradient-brand-subtle flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform value-icon-hover">
                         {card.icon}
                       </div>
                       <div>

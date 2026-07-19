@@ -114,7 +114,7 @@ export function Footer() {
                   <MagneticWrapper strength={0.2}>
                     <button
                       onClick={() => scrollToSection(link.href)}
-                      className="text-sm text-foreground/50 hover:text-foreground hover:translate-x-1 active:scale-95 transition-all duration-200 text-left w-full min-h-[44px] flex items-center"
+                      className="text-sm text-foreground/60 hover:text-foreground hover:translate-x-1 active:scale-95 transition-all duration-200 text-left w-full min-h-[44px] flex items-center"
                       aria-label={`Navigate to ${link.label}`}
                       data-testid={`link-footer-${link.label.toLowerCase()}`}
                     >
@@ -129,7 +129,7 @@ export function Footer() {
           {/* Contact — spans 4 cols */}
           <motion.div variants={itemVariants}>
             <h4 className="font-semibold mb-5 text-foreground text-sm uppercase tracking-wider">Contact</h4>
-            <div className="space-y-3 text-sm text-foreground/50">
+            <div className="space-y-3 text-sm text-foreground/60">
               <p data-testid="text-footer-address">{footerAddress}</p>
               {footerMobile && (
                 <a
@@ -179,7 +179,7 @@ export function Footer() {
                   <MagneticWrapper strength={0.2}>
                     <button
                       onClick={() => navigateToPage(link.path)}
-                      className="text-sm text-foreground/50 hover:text-foreground hover:translate-x-1 active:scale-95 transition-all duration-200 text-left w-full"
+                      className="text-sm text-foreground/60 hover:text-foreground hover:translate-x-1 active:scale-95 transition-all duration-200 text-left w-full"
                       aria-label={link.label}
                     >
                       {link.label}
@@ -197,7 +197,7 @@ export function Footer() {
           variants={itemVariants}
         >
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3 text-sm text-foreground/50">
+            <div className="flex items-center gap-3 text-sm text-foreground/60">
               <MiniLogo className="opacity-80" />
               <span>© {currentYear} VyomAi Cloud Pvt. Ltd. All rights reserved.</span>
             </div>
@@ -208,7 +208,7 @@ export function Footer() {
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
               <NepaliFlag className="w-4 h-5 animate-windy" />
-              <span className="text-xs text-foreground/50">Crafted in Kathmandu · Deployed Globally</span>
+              <span className="text-xs text-foreground/60">Crafted in Kathmandu · Deployed Globally</span>
             </motion.div>
           </div>
         </motion.div>

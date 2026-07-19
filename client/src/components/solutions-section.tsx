@@ -159,7 +159,7 @@ export function SolutionsSection() {
                     {solution.title}
                   </h3>
 
-                  <p className="text-foreground/60 mb-6 leading-relaxed">
+                  <p className="text-muted-foreground mb-6 leading-relaxed">
                     {solution.description}
                   </p>
 
@@ -206,11 +206,11 @@ export function SolutionsSection() {
               <h3 className="text-2xl font-bold mb-4 font-display text-foreground group-hover:text-primary transition-colors">
                 Need Custom Integration?
               </h3>
-              <p className="text-foreground/60 max-w-2xl mx-auto mb-6">
+              <p className="text-muted-foreground max-w-2xl mx-auto mb-6">
                 We can build AI solutions for any platform or create custom integrations
                 for your specific enterprise needs. Let&apos;s discuss your requirements.
               </p>
-              <Button size="lg" onClick={scrollToContact} data-testid="button-discuss-project" className="bg-gradient-to-r from-primary via-[#c060d0] to-accent text-white border-0 shadow-lg shadow-brand-start/25">
+              <Button size="lg" onClick={scrollToContact} data-testid="button-discuss-project" className="bg-gradient-to-r from-primary via-brand-mid to-accent text-white border-0 shadow-lg shadow-brand-start/25">
                 Discuss Your Project
               </Button>
             </div>
