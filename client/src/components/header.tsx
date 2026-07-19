@@ -136,7 +136,7 @@ export function Header() {
           </nav>
 
           {/* Right Actions */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0 overflow-hidden">
             <div className={`hidden md:flex items-center gap-2 ${isOverHero ? "text-white" : ""}`}>
               <SocialLinks />
             </div>
@@ -145,10 +145,11 @@ export function Header() {
               <SearchTrigger className={isOverHero ? "text-white/80 hover:text-white hover:bg-white/10" : ""} />
             </div>
 
+            {/* Admin — hidden on mobile (accessible via dock) */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="header-tooltip-wrap"
+              className="header-tooltip-wrap hidden sm:block"
               data-tooltip="Admin"
             >
               <Button
@@ -164,10 +165,11 @@ export function Header() {
               </Button>
             </motion.div>
 
+            {/* Email — hidden on mobile (accessible via dock) */}
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
-              className="header-tooltip-wrap"
+              className="header-tooltip-wrap hidden sm:block"
               data-tooltip="Email"
             >
               <Button

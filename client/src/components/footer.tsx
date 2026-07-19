@@ -108,7 +108,7 @@ export function Footer() {
                   <MagneticWrapper strength={0.2}>
                     <button
                       onClick={() => scrollToSection(link.href)}
-                      className="text-sm text-foreground/50 hover:text-foreground hover:translate-x-1 active:scale-95 transition-all duration-200 text-left w-full"
+                      className="text-sm text-foreground/50 hover:text-foreground hover:translate-x-1 active:scale-95 transition-all duration-200 text-left w-full min-h-[44px] flex items-center"
                       aria-label={`Navigate to ${link.label}`}
                       data-testid={`link-footer-${link.label.toLowerCase()}`}
                     >

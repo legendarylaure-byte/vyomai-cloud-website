@@ -42,7 +42,7 @@ export function InteractiveAISection() {
               aria-controls={`tabpanel-${tab.id}`}
               tabIndex={activeTab === tab.id ? 0 : -1}
               onClick={() => setActiveTab(tab.id)}
-              className={`relative flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-3 rounded-2xl text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+              className={`relative flex items-center gap-2 sm:gap-2.5 px-3 sm:px-5 py-2 sm:py-3 min-h-[44px] rounded-2xl text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                 activeTab === tab.id
                   ? "bg-primary/15 text-primary border border-primary/30 shadow-lg shadow-primary/10"
                   : "text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent"

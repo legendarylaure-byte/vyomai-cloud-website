@@ -284,6 +284,7 @@ html {
 
   .light .gradient-brand-subtle {
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 4px 24px rgba(0,0,0,0.04), 0 0 48px rgba(138,80,232,0.05);
     border: 1px solid rgba(138,80,232,0.08);
   }
@@ -310,12 +311,14 @@ html {
   .glass {
     background-color: rgba(255,255,255,.05);
     backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(255,255,255,.08);
   }
 
   .glass-card {
     background-color: rgba(26, 23, 48, .8);
     backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
     border: 1px solid rgba(42, 34, 64, .6);
     position: relative;
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), 0 0 40px rgba(138, 80, 232, 0.06);
@@ -376,6 +379,7 @@ html {
     background: linear-gradient(135deg, #1A1730, #1E1B35);
     border: 1px solid rgba(42, 34, 64, .6);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
     position: relative;
   }
@@ -464,6 +468,69 @@ html {
   .ai-consultant-trigger:hover .shiny-white-text {
     animation: shiny-sweep 1.5s ease-in-out infinite;
   }
+
+/* ===== MOBILE TOUCH TARGET MINIMUM ===== */
+@media (max-width: 767px) {
+  .cursor-glow {
+    display: none !important;
+  }
+
+  /* Disable title glow animation on mobile */
+  .hero-title-loopstack {
+    animation: none !important;
+  }
+
+  /* Slower marquee on mobile for readability */
+  .animate-marquee {
+    animation-duration: 60s;
+  }
+
+  /* Pause marquee on touch */
+  .animate-marquee:active {
+    animation-play-state: paused;
+  }
+
+  /* Hide video + stars + comets on mobile for performance */
+  .hero-video-container {
+    display: none !important;
+  }
+  .hero-stars {
+    display: none !important;
+  }
+  .hero-comets {
+    display: none !important;
+  }
+  .hero-brand-star {
+    display: none !important;
+  }
+
+  /* Reduce floating particles on mobile */
+  .floating-particle:nth-child(n+6) {
+    display: none !important;
+  }
+
+  /* Fix horizontal overflow from header */
+  .header-pill-nav {
+    overflow: hidden;
+  }
+
+  /* scroll-behavior to auto on mobile Safari */
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  /* Reduce blur on all blurred elements */
+  .ai-consultant-trigger,
+  .smart-search-modal {
+    backdrop-filter: blur(8px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  }
+
+  /* Hero CTA — give more room for text */
+  .hero-cta-area {
+    bottom: 12vh;
+  }
+}
 
   @keyframes shiny-sweep {
     0% { background-position: 200% center; }
@@ -823,7 +890,6 @@ html {
     z-index: 100;
     transform: translate(-50%, -50%);
     transition: opacity 0.4s ease, left 0.15s ease-out, top 0.15s ease-out;
-    will-change: left, top;
   }
 
   /* ===== TYPOGRAPHY UTILITIES ===== */
@@ -943,6 +1009,7 @@ html {
     border-radius: 9999px;
     background: rgba(255,255,255,.04);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,.08);
     transition: all 0.4s cubic-bezier(0.32, 0.72, 0, 1);
     overflow: hidden;
@@ -1264,6 +1331,7 @@ html {
     background: rgba(248, 245, 252, 0.80);
     border: 1px solid rgba(138, 80, 232, 0.12);
     backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 0 48px rgba(138, 80, 232, 0.06);
   }
 
@@ -1279,6 +1347,7 @@ html {
     background: linear-gradient(135deg, #F5F0FC, #F0E8F8, #F8F3FE);
     border: 1px solid rgba(138, 80, 232, 0.1);
     backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
   }
 
   .light .metallic-card::before {
@@ -2849,11 +2918,13 @@ button:focus-visible {
   }
 
   .hero-tagline-heading {
-    font-size: clamp(0.875rem, 3.5vw, 1.1rem) !important;
+    font-size: clamp(1.2rem, 5vw, 1.5rem) !important;
+    line-height: 1.3 !important;
   }
 
   .hero-tagline-desc {
-    font-size: 0.875rem !important;
+    font-size: clamp(1rem, 4vw, 1.1rem) !important;
+    line-height: 1.5 !important;
     max-width: 100% !important;
   }
 
@@ -2910,6 +2981,7 @@ button:focus-visible {
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 4px 25px rgba(192, 96, 208, 0.2);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .ai-consultant-trigger:hover {

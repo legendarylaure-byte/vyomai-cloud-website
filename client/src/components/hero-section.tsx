@@ -104,8 +104,8 @@ export function HeroSection() {
       <div className="hero-brand-star hero-brand-star-2" aria-hidden="true" />
       <div className="hero-brand-star hero-brand-star-3" aria-hidden="true" />
 
-      {/* Floating ambient particles */}
-      <FloatingParticles count={15} />
+      {/* Floating ambient particles — reduced on mobile via CSS */}
+      <FloatingParticles count={15} className="hero-particles" />
 
       {/* Title — top center */}
       <motion.div className="hero-content" style={{ opacity, scale }}>
