@@ -115,6 +115,7 @@ export function HomepageContentPage() {
   const [showTeam, setShowTeam] = useState(true);
   const [showPricing, setShowPricing] = useState(true);
   const [showInteractiveAI, setShowInteractiveAI] = useState(true);
+  const [showConnectWithUs, setShowConnectWithUs] = useState(true);
 
   useEffect(() => {
     if (settings) {
@@ -130,6 +131,7 @@ export function HomepageContentPage() {
       setShowTeam(settings.showTeamSection ?? true);
       setShowPricing(settings.showPricingSection ?? true);
       setShowInteractiveAI(settings.showInteractiveAISection ?? true);
+      setShowConnectWithUs(settings.showConnectWithUs ?? true);
     }
   }, [settings]);
 
@@ -220,6 +222,10 @@ export function HomepageContentPage() {
             <div className="flex items-center justify-between rounded-lg border p-3">
               <Label className="text-sm">Pricing Section</Label>
               <Switch checked={showPricing} onCheckedChange={(v) => { setShowPricing(v); toggleSection("showPricingSection", v); }} />
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <Label className="text-sm">Connect With Us Section</Label>
+              <Switch checked={showConnectWithUs} onCheckedChange={(v) => { setShowConnectWithUs(v); toggleSection("showConnectWithUs", v); }} />
             </div>
           </div>
         </CardContent>

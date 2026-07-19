@@ -112,7 +112,7 @@ export function ServicesSection() {
                   className={isFirst ? "md:col-span-2 lg:col-span-2" : ""}
                   data-testid={`card-service-${index}`}
                 >
-                   <Card className="glass-card border-0 transition-all duration-300 group h-full overflow-visible card-hover-glow shimmer-hover">
+                   <Card className="metallic-card gradient-brand-subtle border-0 transition-all duration-300 group h-full overflow-visible card-hover-glow shimmer-hover">
                     <CardContent className={`p-6 ${isFirst ? "lg:p-8" : ""}`}>
                       <div className={`rounded-2xl flex items-center justify-center mb-5 value-icon-hover ${isFirst ? "w-16 h-16" : "w-14 h-14"}`} style={{ background: "linear-gradient(135deg, rgba(224,112,64,0.15), rgba(138,80,232,0.15))" }}>
                         <IconComponent className={`text-accent ${isFirst ? "w-8 h-8" : "w-7 h-7"}`} />

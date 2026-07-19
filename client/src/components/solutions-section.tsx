@@ -145,7 +145,7 @@ export function SolutionsSection() {
                 <motion.div
                   key={solution.id || index}
                   variants={itemVariants}
-                  className="metallic-card rounded-2xl p-6 sm:p-8 hover-elevate transition-all duration-300 overflow-visible card-glow shimmer-hover solutions-card-tilt"
+                  className="metallic-card gradient-brand-subtle rounded-2xl p-6 sm:p-8 hover-elevate transition-all duration-300 overflow-visible card-glow shimmer-hover solutions-card-tilt"
                   data-testid={`card-solution-${index}`}
                 >
                   <div
