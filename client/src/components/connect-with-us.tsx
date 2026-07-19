@@ -61,8 +61,8 @@ export function ConnectWithUs() {
   })).filter(p => p.url);
 
   return (
-    <section id="connect" className="pb-20 pt-24 section-a tint-lavender relative overflow-hidden">
-      <div className="max-w-4xl mx-auto px-4 relative z-10">
+    <section id="connect" className="pb-20 pt-16 sm:pt-24 section-a tint-lavender relative overflow-hidden">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <SectionHeader
           badge="Join Our Network"
           title={<>Connect With <span className="gradient-brand-text">Us</span></>}

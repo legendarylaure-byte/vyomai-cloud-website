@@ -1,5 +1,5 @@
 import { Switch, Route, useLocation } from "wouter";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, Suspense, lazy } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -13,49 +13,63 @@ import { SmartSearchModal } from "@/components/smart-search";
 import { FloatingWidgets } from "@/components/floating-widgets";
 import { MotionConfig } from "framer-motion";
 import Home from "@/pages/home";
-import AdminLoginQR from "@/pages/admin-login-qr";
-import AdminDashboard from "@/pages/admin-dashboard";
-import EmailLogin from "@/pages/email-login";
-import EmailInbox from "@/pages/email-inbox";
 import NotFound from "@/pages/not-found";
-import TermsOfService from "@/pages/terms-of-service";
-import PrivacyPolicy from "@/pages/privacy-policy";
-import CookiePolicy from "@/pages/cookie-policy";
+
+const AdminLoginQR = lazy(() => import("@/pages/admin-login-qr"));
+const AdminDashboard = lazy(() => import("@/pages/admin-dashboard"));
+const EmailLogin = lazy(() => import("@/pages/email-login"));
+const EmailInbox = lazy(() => import("@/pages/email-inbox"));
+const TermsOfService = lazy(() => import("@/pages/terms-of-service"));
+const PrivacyPolicy = lazy(() => import("@/pages/privacy-policy"));
+const CookiePolicy = lazy(() => import("@/pages/cookie-policy"));
 
 const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+
+function RouteSpinner() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+        <span className="text-sm text-muted-foreground">Loading...</span>
+      </div>
+    </div>
+  );
+}
 
 function Router() {
   return (
     <PageTransition>
-      <Switch>
-        <Route path="/" component={Home} />
-        <Route path="/admin" component={AdminLoginQR} />
-        <Route path="/admin/dashboard" component={AdminDashboard} />
-        <Route path="/admin/homepage-content" component={AdminDashboard} />
-        <Route path="/admin/articles" component={AdminDashboard} />
-        <Route path="/admin/team" component={AdminDashboard} />
-        <Route path="/admin/pricing" component={AdminDashboard} />
-        <Route path="/admin/bookings" component={AdminDashboard} />
-        <Route path="/admin/inquiries" component={AdminDashboard} />
-        <Route path="/admin/communications" component={AdminDashboard} />
-        <Route path="/admin/users" component={AdminDashboard} />
-        <Route path="/admin/popup-forms" component={AdminDashboard} />
-        <Route path="/admin/settings" component={AdminDashboard} />
-        <Route path="/admin/social-media" component={AdminDashboard} />
-        <Route path="/admin/social-media-integration" component={AdminDashboard} />
-        <Route path="/admin/email-settings" component={AdminDashboard} />
-        <Route path="/admin/analytics" component={AdminDashboard} />
-        <Route path="/admin/testimonials" component={AdminDashboard} />
-        <Route path="/admin/faq" component={AdminDashboard} />
-        <Route path="/admin/leads" component={AdminDashboard} />
-        <Route path="/admin/lead/:id" component={AdminDashboard} />
-        <Route path="/email/login" component={EmailLogin} />
-        <Route path="/email/inbox" component={EmailInbox} />
-        <Route path="/terms" component={TermsOfService} />
-        <Route path="/privacy" component={PrivacyPolicy} />
-        <Route path="/cookies" component={CookiePolicy} />
-        <Route component={NotFound} />
-      </Switch>
+      <Suspense fallback={<RouteSpinner />}>
+        <Switch>
+          <Route path="/" component={Home} />
+          <Route path="/admin" component={AdminLoginQR} />
+          <Route path="/admin/dashboard" component={AdminDashboard} />
+          <Route path="/admin/homepage-content" component={AdminDashboard} />
+          <Route path="/admin/articles" component={AdminDashboard} />
+          <Route path="/admin/team" component={AdminDashboard} />
+          <Route path="/admin/pricing" component={AdminDashboard} />
+          <Route path="/admin/bookings" component={AdminDashboard} />
+          <Route path="/admin/inquiries" component={AdminDashboard} />
+          <Route path="/admin/communications" component={AdminDashboard} />
+          <Route path="/admin/users" component={AdminDashboard} />
+          <Route path="/admin/popup-forms" component={AdminDashboard} />
+          <Route path="/admin/settings" component={AdminDashboard} />
+          <Route path="/admin/social-media" component={AdminDashboard} />
+          <Route path="/admin/social-media-integration" component={AdminDashboard} />
+          <Route path="/admin/email-settings" component={AdminDashboard} />
+          <Route path="/admin/analytics" component={AdminDashboard} />
+          <Route path="/admin/testimonials" component={AdminDashboard} />
+          <Route path="/admin/faq" component={AdminDashboard} />
+          <Route path="/admin/leads" component={AdminDashboard} />
+          <Route path="/admin/lead/:id" component={AdminDashboard} />
+          <Route path="/email/login" component={EmailLogin} />
+          <Route path="/email/inbox" component={EmailInbox} />
+          <Route path="/terms" component={TermsOfService} />
+          <Route path="/privacy" component={PrivacyPolicy} />
+          <Route path="/cookies" component={CookiePolicy} />
+          <Route component={NotFound} />
+        </Switch>
+      </Suspense>
     </PageTransition>
   );
 }
@@ -75,6 +89,16 @@ function App() {
       setTimeout(() => preloader.remove(), 600);
     }
   }, []);
+
+  // Track page views for GA4 on route changes
+  useEffect(() => {
+    if (typeof window.gtag === "function") {
+      window.gtag("event", "page_view", {
+        page_path: location,
+        page_title: document.title,
+      });
+    }
+  }, [location]);
 
   const content = (
     <MotionConfig reducedMotion={prefersReducedMotion ? "always" : "never"}>

@@ -189,7 +189,7 @@ export function PricingSection() {
   return (
     <section
       id="pricing"
-      className="relative pb-20 pt-24 overflow-hidden section-b tint-warm"
+      className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-b tint-warm"
       data-testid="section-pricing"
     >
       <div className="absolute inset-0 mandala-pattern opacity-[0.03]" />
@@ -233,7 +233,7 @@ export function PricingSection() {
                     onClick={() => setSelectedCurrency(currency as "USD" | "EUR" | "INR" | "NPR")}
                     aria-pressed={selectedCurrency === currency}
                     aria-label={`Select ${currency} currency`}
-                    className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                    className={`px-3 min-h-[44px] py-1.5 rounded-md text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                       selectedCurrency === currency
                         ? "bg-gradient-to-r from-primary/20 to-accent/15 text-foreground ring-1 ring-primary/30"
                         : "bg-card/5 text-foreground/50 hover:bg-card/10 hover:text-foreground/70 hover:ring-1 hover:ring-border/20"
@@ -490,7 +490,7 @@ export function PricingSection() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="text-sm font-medium block mb-2">Email</label>
                     <Input
@@ -584,7 +584,7 @@ export function PricingSection() {
           </Dialog>
 
           {/* Custom plan CTA */}
-          <div className="mt-20 gradient-brand-subtle rounded-2xl p-12 text-center border border-black/5 dark:border-white/8 relative overflow-hidden group hover-elevate">
+          <div className="mt-12 sm:mt-20 gradient-brand-subtle rounded-2xl p-8 sm:p-12 text-center border border-black/5 dark:border-white/8 relative overflow-hidden group hover-elevate">
             <div className="absolute inset-0 gradient-brand opacity-5 group-hover:opacity-10 transition-all duration-300" />
             <div className="relative z-10">
               <h3 className="text-2xl sm:text-3xl font-bold mb-3 font-display group-hover:text-primary transition-colors">

@@ -86,7 +86,7 @@ export function Footer() {
             <NepaliFlag className="w-5 h-7 animate-windy" />
           </div>
           <p className="text-base text-foreground/60 leading-relaxed max-w-2xl">
-            VyomAi Cloud Pvt. Ltd is a startup company dedicated to AI technology research
+            VyomAi Cloud Pvt. Ltd is an AI technology company dedicated to research
             and development, bringing intelligent solutions from Nepal to the world.
           </p>
         </motion.div>
@@ -197,7 +197,7 @@ export function Footer() {
             </div>
 
             <motion.div
-              className="flex items-center gap-2 px-4 py-2 rounded-full bg-card/5 border border-border/10"
+              className="flex flex-wrap items-center justify-center gap-2 px-4 py-2 rounded-full bg-card/5 border border-border/10"
               whileHover={{ scale: 1.05, borderColor: "rgba(138,80,232,0.3)" }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >

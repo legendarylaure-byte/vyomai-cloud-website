@@ -207,7 +207,7 @@ app.use((req, res, next) => {
 
 // ============== CORS ==============
 
-const allowedOrigins = (process.env.CORS_ORIGINS || "https://vyomai.cloud,http://localhost:5000,http://localhost:5174").split(",");
+const allowedOrigins = (process.env.CORS_ORIGINS || "https://vyomai.cloud,http://localhost:5000,http://localhost:5174,http://localhost:3000,http://localhost:5173").split(",");
 
 app.use(
   cors({
@@ -288,5 +288,16 @@ if (process.env.VERCEL !== "1") {
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));
 }
+
+// ============== GLOBAL ERROR HANDLERS ==============
+
+process.on("uncaughtException", (err) => {
+  console.error("[FATAL] Uncaught Exception:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason) => {
+  console.error("[FATAL] Unhandled Rejection:", reason);
+});
 
 export { app };

@@ -1,11 +1,21 @@
 {
     "version": 2,
+    "outputDirectory": "dist/public",
     "functions": {
         "api/index.ts": {
-            "includeFiles": "{dist/**,server/**,shared/**}"
+            "includeFiles": "{server/**,shared/**}"
         }
     },
     "headers": [
+        {
+            "source": "/assets/(.*)",
+            "headers": [
+                {
+                    "key": "Cache-Control",
+                    "value": "public, max-age=31536000, immutable"
+                }
+            ]
+        },
         {
             "source": "/(.*)",
             "headers": [
@@ -30,7 +40,7 @@
             "destination": "/api/index.ts"
         },
         {
-            "source": "/((?!assets/).*)",
+            "source": "/(.*)",
             "destination": "/api/index.ts"
         }
     ],

@@ -131,7 +131,7 @@ export function SectionHeader({
       variants={container}
       initial="hidden"
       animate={isInView ? "visible" : "hidden"}
-      className={`text-center max-w-3xl mx-auto mb-16 ${className}`}
+      className={`text-center max-w-3xl mx-auto mb-10 sm:mb-16 ${className}`}
     >
       {badge && (
         <motion.div variants={fadeUp}>
@@ -155,7 +155,7 @@ export function SectionHeader({
         <motion.div
           variants={fadeUp}
         >
-          <TextReveal as="p" mode="word" delay={0.3} staggerDelay={0.04} className="text-lg text-foreground/60">
+          <TextReveal as="p" mode="word" delay={0.3} staggerDelay={0.04} className="text-base sm:text-lg text-foreground/60">
             {subtitle}
           </TextReveal>
         </motion.div>

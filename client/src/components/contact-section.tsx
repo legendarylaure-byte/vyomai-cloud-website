@@ -101,7 +101,7 @@ export function ContactSection() {
   return (
     <section
       id="contact"
-      className="relative pb-20 pt-24 overflow-hidden section-b tint-cool"
+      className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-b tint-cool"
       data-testid="section-contact"
     >
       {/* Brand glow orb */}

@@ -30,8 +30,23 @@ export function FloatingCloud({
   const isPlayingRef = useRef(false);
   const delayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [containerSize, setContainerSize] = useState({ width: 1000, height: 600 });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const PADDING = 60;
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      setContainerSize({ width: rect.width, height: rect.height });
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    window.addEventListener("resize", update);
+    return () => { ro.disconnect(); window.removeEventListener("resize", update); };
+  }, []);
 
   // Generate random target within bounds
   const generateRandomTarget = () => {
@@ -207,8 +222,8 @@ export function FloatingCloud({
 
   return (
     <div
-      className="absolute inset-0 w-full h-full pointer-events-none"
-      onMouseEnter={() => setContainerSize(prev => ({ ...prev }))}
+      className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden hidden-mobile-cloud"
+      ref={containerRef}
       data-testid="container-floating-cloud"
       style={{
         width: "100%",
@@ -260,7 +275,7 @@ export function FloatingCloud({
           <div className="text-xs font-semibold text-primary uppercase tracking-widest drop-shadow-lg">
             Contact VyomAi
           </div>
-          <div className="text-[10px] text-primary/70 font-medium drop-shadow">
+          <div className="text-xs text-primary/70 font-medium drop-shadow">
             for Premium Package
           </div>
         </motion.div>

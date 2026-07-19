@@ -75,7 +75,7 @@ export function MediaSection() {
   return (
     <section
       id="media"
-      className="relative pb-20 pt-24 overflow-hidden section-a"
+      className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-a"
       data-testid="section-media"
     >
       <div className="absolute inset-0 mandala-pattern opacity-[0.015]" />

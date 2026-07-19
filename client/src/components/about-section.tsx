@@ -79,13 +79,13 @@ export function AboutSection() {
   const badgeText = content?.badgeText || "About VyomAi";
   const titleHighlight = content?.titleHighlight || "Pioneering AI";
   const titleNormal = content?.titleNormal || " in Nepal";
-  const description = content?.description || "VyomAi Cloud Pvt. Ltd is a startup company dedicated to AI technology research and development. Based in Tokha, Kathmandu, Nepal, we work tirelessly to provide the best AI product solutions and consulting services for organizations seeking to embrace the future.";
+  const description = content?.description || "VyomAi Cloud Pvt. Ltd is an AI technology company dedicated to research and development. Based in Tokha, Kathmandu, Nepal, we work tirelessly to provide the best AI product solutions and consulting services for organizations seeking to embrace the future.";
 
   return (
     <section
       id="about"
       ref={sectionRef}
-      className="relative pb-20 pt-24 overflow-hidden section-b about-top-glow tint-rose"
+      className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-b about-top-glow tint-rose"
       aria-labelledby="about"
       data-testid="section-about"
     >

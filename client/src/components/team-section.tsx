@@ -51,7 +51,7 @@ export function TeamSection() {
   return (
     <section
       id="team"
-      className="relative pb-20 pt-24 overflow-hidden section-a tint-rose"
+      className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-a tint-rose"
       data-testid="section-team"
     >
       <div className="absolute inset-0 mandala-pattern opacity-[0.03]" />

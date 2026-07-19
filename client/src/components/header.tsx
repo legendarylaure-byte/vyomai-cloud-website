@@ -61,6 +61,16 @@ export function Header() {
     return () => observers.forEach((o) => o.disconnect());
   }, [handleIntersection]);
 
+  // Escape key to close mobile menu
+  useEffect(() => {
+    if (!isMobileMenuOpen) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [isMobileMenuOpen]);
+
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
     if (element) {
@@ -90,13 +100,14 @@ export function Header() {
           }`}
         >
           {/* Logo */}
-          <div
+          <button
             className="flex items-center gap-2 shrink-0 cursor-pointer"
             onClick={() => document.getElementById('home')?.scrollIntoView({ behavior: 'smooth' })}
+            aria-label="Go to homepage"
           >
             <AnimatedLogo variant="header" showText={true} />
             <NepaliFlag className="w-5 h-7 animate-windy" />
-          </div>
+          </button>
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
@@ -106,6 +117,7 @@ export function Header() {
                 <button
                   key={link.href}
                   onClick={() => scrollToSection(link.href)}
+                  aria-current={isActive ? "page" : undefined}
                   className={`nav-link px-4 py-2 text-sm font-medium transition-all duration-300 rounded-xl relative ${
                     isActive
                       ? isOverHero
@@ -245,7 +257,7 @@ export function Header() {
             transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
             className="lg:hidden overflow-hidden"
           >
-            <div className="glass mx-4 mt-2 rounded-2xl border border-white/10 dark:border-white/10 border-black/5 p-4">
+            <div className="glass mx-4 mt-2 rounded-2xl border border-white/10 dark:border-white/10 border-black/5 p-4" role="dialog" aria-modal="true" aria-label="Mobile navigation">
               <nav className="flex flex-col gap-1">
                 {navLinks.map((link) => (
                   <button

@@ -108,7 +108,7 @@ export function SolutionsSection() {
     <section
       id="solutions"
       ref={sectionRef}
-      className="relative pb-20 pt-24 overflow-hidden section-b tint-rose"
+      className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-b tint-rose"
       data-testid="section-solutions"
     >
       {/* Parallax mandala */}
@@ -145,9 +145,8 @@ export function SolutionsSection() {
                 <motion.div
                   key={solution.id || index}
                   variants={itemVariants}
-                  className="metallic-card rounded-2xl p-8 hover-elevate transition-all duration-300 overflow-visible card-glow shimmer-hover solutions-card-tilt"
+                  className="metallic-card rounded-2xl p-6 sm:p-8 hover-elevate transition-all duration-300 overflow-visible card-glow shimmer-hover solutions-card-tilt"
                   data-testid={`card-solution-${index}`}
-                  whileHover={{ y: -4, transition: { duration: 0.5 } }}
                 >
                   <div
                     className="w-16 h-16 rounded-2xl flex items-center justify-center mb-6 value-icon-hover"
@@ -196,7 +195,7 @@ export function SolutionsSection() {
           </motion.div>
 
           <motion.div
-            className="mt-16 gradient-brand-subtle rounded-2xl p-8 sm:p-12 text-center border border-black/5 dark:border-white/8 relative overflow-hidden group hover-elevate"
+            className="mt-10 sm:mt-16 gradient-brand-subtle rounded-2xl p-8 sm:p-12 text-center border border-black/5 dark:border-white/8 relative overflow-hidden group hover-elevate"
             initial={{ opacity: 0, y: 60, filter: "blur(12px)", scale: 0.92 }}
             whileInView={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
             viewport={{ once: true, margin: "-8%" }}

@@ -229,7 +229,7 @@ export function AIConsultant() {
               </div>
               <button
                 onClick={() => setIsOpen(false)}
-                className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
+                className="text-muted-foreground hover:text-foreground min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg hover:bg-muted/50 transition-colors"
                 aria-label="Close consultant"
               >
                 <X className="w-4 h-4" />
@@ -237,7 +237,7 @@ export function AIConsultant() {
             </div>
 
             {/* Messages */}
-            <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0">
+            <div className="p-4 space-y-3 overflow-y-auto flex-1 min-h-0" aria-live="polite" aria-label="Conversation messages">
               {messages.length === 0 && (
                 <div className="space-y-2">
                   <p className="text-xs text-muted-foreground mb-3">Quick questions:</p>
@@ -282,12 +282,12 @@ export function AIConsultant() {
                 onKeyDown={handleKeyDown}
                 placeholder={input ? "" : `${typingPlaceholder}...`}
                 disabled={isStreaming}
-                className="flex-1 bg-muted/30 border border-border/50 rounded-lg px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors input-focus-glow"
+                className="flex-1 bg-muted/30 border border-border/50 rounded-lg px-3 py-2.5 text-base text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 transition-colors input-focus-glow"
               />
               {isStreaming ? (
                 <button
                   onClick={() => setIsStreaming(false)}
-                  className="px-3 py-2.5 rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-red-500/20 text-red-500 hover:bg-red-500/30 transition-colors"
                   aria-label="Stop generating"
                 >
                   <Loader2 className="w-4 h-4 animate-spin" />
@@ -296,7 +296,7 @@ export function AIConsultant() {
                 <button
                   onClick={() => sendConsult(input)}
                   disabled={!input.trim() || isStreaming}
-                  className="px-3 py-2.5 rounded-lg bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg bg-gradient-to-r from-primary to-accent text-white hover:opacity-90 transition-opacity disabled:opacity-50"
                   aria-label="Send"
                 >
                   <Send className="w-4 h-4" />

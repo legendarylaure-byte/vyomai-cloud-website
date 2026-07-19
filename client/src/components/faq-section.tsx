@@ -38,10 +38,10 @@ export function FaqSection() {
 
   if (isLoading) {
     return (
-      <section id="faq" className="pb-20 pt-24 section-b tint-lavender relative overflow-hidden" data-testid="section-faq">
+    <section id="faq" className="pb-20 pt-16 sm:pt-24 section-b tint-lavender relative overflow-hidden" data-testid="section-faq">
         <div className="dark-glow-orb top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
-        <div className="max-w-4xl mx-auto px-4 relative z-10">
-          <SectionHeader
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        <SectionHeader
             badge="FAQ"
             title={<>Frequently Asked <span className="gradient-brand-text">Questions</span></>}
             subtitle="Find answers to common questions about our services"
@@ -61,7 +61,7 @@ export function FaqSection() {
   if (faqs.length === 0) return null;
 
   return (
-    <section id="faq" className="pb-20 pt-24 section-b tint-lavender relative overflow-hidden" data-testid="section-faq">
+    <section id="faq" className="pb-20 pt-16 sm:pt-24 section-b tint-lavender relative overflow-hidden" data-testid="section-faq">
       {/* FAQPage structured data for rich snippets */}
       <script
         type="application/ld+json"
@@ -81,9 +81,9 @@ export function FaqSection() {
         }}
       />
       <div className="dark-glow-orb top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
 
-      <div className="max-w-4xl mx-auto px-4 relative z-10">
-        <SectionHeader
+          <SectionHeader
           badge="FAQ"
           title={<>Frequently Asked <span className="gradient-brand-text">Questions</span></>}
           subtitle="Find answers to common questions about our services"
@@ -103,7 +103,7 @@ export function FaqSection() {
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
                 aria-pressed={activeCategory === cat}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
+                className={`px-4 min-h-[44px] py-1.5 rounded-full text-sm font-medium transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                   activeCategory === cat
                     ? "gradient-brand text-white shadow-lg shadow-brand-start/25"
                     : "bg-card/5 text-foreground/60 hover:bg-card/10"

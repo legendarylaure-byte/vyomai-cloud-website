@@ -28,7 +28,7 @@ export function TestimonialsSection() {
 
   if (isLoading) {
     return (
-      <section ref={sectionRef} id="testimonials" className="relative pb-20 pt-24 overflow-hidden section-a tint-pink" data-testid="section-testimonials">
+      <section ref={sectionRef} id="testimonials" className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-a tint-pink" data-testid="section-testimonials">
         <div className="absolute inset-0 mandala-pattern opacity-[0.02]" />
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 relative z-10">
           <SectionHeader
@@ -51,7 +51,7 @@ export function TestimonialsSection() {
   const items = [...testimonials, ...testimonials];
 
   return (
-    <section ref={sectionRef} id="testimonials" className="relative pb-20 pt-24 overflow-hidden section-a tint-pink" data-testid="section-testimonials">
+    <section ref={sectionRef} id="testimonials" className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-a tint-pink" data-testid="section-testimonials">
       <div className="absolute inset-0 mandala-pattern opacity-[0.02]" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-12 relative z-10">

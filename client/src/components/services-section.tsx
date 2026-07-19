@@ -76,7 +76,7 @@ export function ServicesSection() {
     <section
       id="services"
       ref={sectionRef}
-      className="relative pb-20 pt-24 overflow-hidden section-a tint-lavender"
+      className="relative pb-20 pt-16 sm:pt-24 overflow-hidden section-a tint-lavender"
       aria-labelledby="services"
       data-testid="section-services"
     >

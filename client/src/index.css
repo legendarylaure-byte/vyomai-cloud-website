@@ -2749,6 +2749,38 @@ button:focus-visible {
 
 /* --- Mobile Override (< 768px) --- */
 @media (max-width: 767px) {
+  /* Prevent overscroll bounce */
+  html {
+    overscroll-behavior: none;
+  }
+
+  /* Momentum scroll for iOS */
+  #root {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Reduce blur on mobile for performance */
+  .metallic-card, .glass-card, .glass-surface {
+    backdrop-filter: blur(8px) saturate(120%) !important;
+    -webkit-backdrop-filter: blur(8px) saturate(120%) !important;
+  }
+
+  /* Reduce animations on mobile for performance/battery */
+  .metallic-card, .glass-card, .glass-surface {
+    animation-duration: 0.3s !important;
+    transition-duration: 0.2s !important;
+  }
+
+  /* iOS zoom prevention on inputs */
+  input[type="text"], input[type="email"], input[type="password"], input[type="number"], input[type="tel"], input[type="url"], input[type="search"], textarea, select {
+    font-size: 16px !important;
+  }
+
+  /* Tap highlight color */
+  a, button, [role="button"] {
+    -webkit-tap-highlight-color: rgba(138, 80, 232, 0.3);
+  }
+
   .vyom-dock {
     right: 0.75rem;
     top: auto;
@@ -2763,8 +2795,8 @@ button:focus-visible {
   }
 
   .dock-btn {
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 
   .dock-tooltip {
@@ -2797,14 +2829,18 @@ button:focus-visible {
   }
 
   .hero-cta-area {
-    bottom: 6vh;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90%;
+    bottom: 14vh;
+    left: 5%;
+    right: 5%;
+    width: auto;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
+  }
+
+  .hidden-mobile-cloud {
+    display: none !important;
   }
 
   .hero-title-loopstack {
@@ -2813,7 +2849,12 @@ button:focus-visible {
   }
 
   .hero-tagline-heading {
-    font-size: clamp(0.75rem, 3vw, 1rem) !important;
+    font-size: clamp(0.875rem, 3.5vw, 1.1rem) !important;
+  }
+
+  .hero-tagline-desc {
+    font-size: 0.875rem !important;
+    max-width: 100% !important;
   }
 
   .noise-overlay::after {

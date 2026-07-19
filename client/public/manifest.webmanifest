@@ -1,0 +1,27 @@
+{
+  "name": "VyomAi Cloud",
+  "short_name": "VyomAi",
+  "description": "AI Solutions for Business & Personal Growth — Nepal to the World",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0D0B1A",
+  "theme_color": "#8a50e8",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["business", "productivity", "technology"],
+  "lang": "en",
+  "dir": "ltr"
+}
