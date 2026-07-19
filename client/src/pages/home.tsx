@@ -98,23 +98,23 @@ export default function Home() {
       <main id="main-content">
         {shouldShow(settings?.showHomeSection) && <HeroSection />}
         {shouldShow(settings?.showAboutSection) && <AboutSection />}
-        <OrbitalArc />
+        {shouldShow(settings?.showAboutSection) && <OrbitalArc />}
         {shouldShow(settings?.showServicesSection) && <ServicesSection />}
-        <OrbitalArc />
+        {shouldShow(settings?.showServicesSection) && <OrbitalArc />}
         {shouldShow(settings?.showInteractiveAISection) && <InteractiveAISection />}
-        <OrbitalArc />
+        {shouldShow(settings?.showInteractiveAISection) && <OrbitalArc />}
         {shouldShow(settings?.showSolutionsSection) && <SolutionsSection />}
-        <OrbitalArc />
+        {shouldShow(settings?.showSolutionsSection) && <OrbitalArc />}
         {shouldShow(settings?.showTeamSection) && <TeamSection />}
-        <OrbitalArc />
+        {shouldShow(settings?.showTeamSection) && <OrbitalArc />}
         {shouldShow(settings?.showPricingSection) && <PricingSection />}
-        <OrbitalArc />
+        {shouldShow(settings?.showPricingSection) && <OrbitalArc />}
         {shouldShow(settings?.showMediaSection) && <MediaSection />}
-        <OrbitalArc />
+        {shouldShow(settings?.showMediaSection) && <OrbitalArc />}
         {shouldShow(settings?.showContactSection) && <ContactSection />}
         {shouldShow(settings?.showTestimonialsSection) && <TestimonialsSection />}
         {shouldShow(settings?.showFaqSection) && <FaqSection />}
-        <OrbitalArc />
+        {shouldShow(settings?.showFaqSection) && <OrbitalArc />}
         {shouldShow(settings?.showConnectWithUs) && <ConnectWithUs />}
       </main>
       <OrbitalArc />

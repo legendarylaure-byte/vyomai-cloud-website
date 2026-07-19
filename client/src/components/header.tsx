@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Menu, X, Sun, Moon, LogIn, Mail } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { NepaliFlag } from "./nepali-flag";
 import { AnimatedLogo } from "./animated-logo";
@@ -7,16 +8,17 @@ import { SocialLinks } from "./social-links";
 import { SearchTrigger } from "./smart-search";
 import { useTheme } from "./theme-provider";
 import { motion, AnimatePresence } from "framer-motion";
+import { type SiteSettings } from "@shared/schema";
 
 const navLinks = [
-  { label: "Home", href: "#home" },
-  { label: "About", href: "#about" },
-  { label: "Services", href: "#services" },
-  { label: "Solutions", href: "#solutions" },
-  { label: "Team", href: "#team" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Media", href: "#media" },
-  { label: "Contact", href: "#contact" },
+  { label: "Home", href: "#home", sectionKey: "showHomeSection" as const },
+  { label: "About", href: "#about", sectionKey: "showAboutSection" as const },
+  { label: "Services", href: "#services", sectionKey: "showServicesSection" as const },
+  { label: "Solutions", href: "#solutions", sectionKey: "showSolutionsSection" as const },
+  { label: "Team", href: "#team", sectionKey: "showTeamSection" as const },
+  { label: "Pricing", href: "#pricing", sectionKey: "showPricingSection" as const },
+  { label: "Media", href: "#media", sectionKey: "showMediaSection" as const },
+  { label: "Contact", href: "#contact", sectionKey: "showContactSection" as const },
 ];
 
 const sectionIds = navLinks.map((l) => l.href.replace("#", ""));
@@ -27,6 +29,19 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("home");
   const { theme, toggleTheme } = useTheme();
+
+  const { data: settings } = useQuery<SiteSettings>({
+    queryKey: ["/api/settings"],
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const visibleNavLinks = useMemo(() => {
+    if (!settings) return navLinks;
+    return navLinks.filter((link) => {
+      const val = settings[link.sectionKey];
+      return val !== false;
+    });
+  }, [settings]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -111,7 +126,7 @@ export function Header() {
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-1" aria-label="Main navigation">
-            {navLinks.map((link) => {
+            {visibleNavLinks.map((link) => {
               const isActive = activeSection === link.href.replace("#", "");
               return (
                 <button
@@ -261,7 +276,7 @@ export function Header() {
           >
             <div className="glass mx-4 mt-2 rounded-2xl border border-white/10 dark:border-white/10 border-black/5 p-4" role="dialog" aria-modal="true" aria-label="Mobile navigation">
               <nav className="flex flex-col gap-1">
-                {navLinks.map((link) => (
+                {visibleNavLinks.map((link) => (
                   <button
                     key={link.href}
                     onClick={() => scrollToSection(link.href)}

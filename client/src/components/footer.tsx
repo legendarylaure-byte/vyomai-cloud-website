@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { Zap, Sparkles } from "lucide-react";
 import { NepaliFlag } from "./nepali-flag";
 import { SocialLinks } from "./social-links";
@@ -9,14 +10,14 @@ import { useLocation } from "wouter";
 import type { SiteSettings } from "@shared/schema";
 
 const footerLinks = [
-  { label: "Home", href: "#home" },
-  { label: "About", href: "#about" },
-  { label: "Services", href: "#services" },
-  { label: "Solutions", href: "#solutions" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Media", href: "#media" },
-  { label: "Team", href: "#team" },
-  { label: "Contact", href: "#contact" },
+  { label: "Home", href: "#home", sectionKey: "showHomeSection" as const },
+  { label: "About", href: "#about", sectionKey: "showAboutSection" as const },
+  { label: "Services", href: "#services", sectionKey: "showServicesSection" as const },
+  { label: "Solutions", href: "#solutions", sectionKey: "showSolutionsSection" as const },
+  { label: "Pricing", href: "#pricing", sectionKey: "showPricingSection" as const },
+  { label: "Media", href: "#media", sectionKey: "showMediaSection" as const },
+  { label: "Team", href: "#team", sectionKey: "showTeamSection" as const },
+  { label: "Contact", href: "#contact", sectionKey: "showContactSection" as const },
 ];
 
 const legalLinks = [
@@ -46,6 +47,11 @@ export function Footer() {
     queryKey: ["/api/settings"]
   });
   const [, setLocation] = useLocation();
+
+  const visibleFooterLinks = useMemo(() => {
+    if (!settings) return footerLinks;
+    return footerLinks.filter((link) => settings[link.sectionKey] !== false);
+  }, [settings]);
 
   const scrollToSection = (href: string) => {
     const element = document.querySelector(href);
@@ -103,7 +109,7 @@ export function Footer() {
               whileInView="visible"
               viewport={{ once: true }}
             >
-              {footerLinks.map((link) => (
+              {visibleFooterLinks.map((link) => (
                 <motion.div key={link.href} variants={linkVariants}>
                   <MagneticWrapper strength={0.2}>
                     <button
