@@ -24,7 +24,7 @@ export function TestimonialsSection() {
   });
 
   const sectionRef = useRef<HTMLDivElement>(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-8%" });
+  const isInView = useInView(sectionRef, { once: false, margin: "-8%" });
 
   if (isLoading) {
     return (

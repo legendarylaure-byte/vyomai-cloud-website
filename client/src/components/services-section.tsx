@@ -100,7 +100,7 @@ export function ServicesSection() {
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-8%" }}
+            viewport={{ once: false, margin: "-8%" }}
           >
             {displayServices.map((service: any, index) => {
               const IconComponent = iconMap[service.icon] || Bot;

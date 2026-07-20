@@ -86,7 +86,7 @@ export function ConnectWithUs() {
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-8%" }}
+          viewport={{ once: false, margin: "-8%" }}
         >
           {platforms.map((platform) => (
             <motion.a
@@ -125,7 +125,7 @@ export function ConnectWithUs() {
           className="mt-12 md:mt-16 grid grid-cols-1 md:grid-cols-2 gap-6 pt-12 border-t border-primary/10"
           initial={{ opacity: 0, y: 60, filter: "blur(12px)", scale: 0.92 }}
           whileInView={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
-          viewport={{ once: true }}
+          viewport={{ once: false }}
           transition={{ duration: 0.7, delay: 0.3 }}
         >
           {settings.email && (

@@ -2358,41 +2358,36 @@ button:focus-visible {
   animation: border-glow 3s ease-in-out infinite;
 }
 
-/* ===== VALUE ICON HOVER — DRAMATIC EFFECT ===== */
+/* ===== VALUE ICON HOVER — COSMIC LEVITATE ===== */
 .value-icon-hover {
-  transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .value-icon-hover::after {
   content: "";
   position: absolute;
-  inset: -6px;
+  inset: -4px;
   border-radius: inherit;
-  border: 2px solid transparent;
-  transition: all 0.5s cubic-bezier(0.32, 0.72, 0, 1);
+  background: radial-gradient(circle at center, rgba(138, 80, 232, 0.15), transparent 70%);
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   pointer-events: none;
 }
 
 .group:hover .value-icon-hover {
-  transform: scale(1.35) rotate(15deg);
-  background: linear-gradient(135deg, #8a50e8, #c060d0, #e07040) !important;
-  box-shadow: 0 0 24px rgba(138, 80, 232, 0.6), 0 0 48px rgba(192, 96, 208, 0.3), 0 0 80px rgba(224, 112, 64, 0.15);
+  transform: translateY(-4px) scale(1.1);
+  filter: drop-shadow(0 8px 24px rgba(138, 80, 232, 0.35));
 }
 
 .group:hover .value-icon-hover svg {
   color: #fff !important;
-  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.6));
+  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.5));
+  transition: all 0.3s ease;
 }
 
 .group:hover .value-icon-hover::after {
-  border-color: rgba(138, 80, 232, 0.4);
-  animation: icon-ring-pulse 1s ease-out infinite;
-}
-
-@keyframes icon-ring-pulse {
-  0% { transform: scale(1); opacity: 0.6; }
-  100% { transform: scale(2); opacity: 0; }
+  opacity: 1;
 }
 
 @keyframes vyom-light-shift {

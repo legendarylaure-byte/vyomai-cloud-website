@@ -26,7 +26,7 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     filter: "blur(0px)",
-    transition: { duration: 0.5, ease: [0.32, 0.72, 0, 1] },
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
   },
 };
 
@@ -84,8 +84,8 @@ export function MediaSection() {
         <motion.div
           initial={{ opacity: 0, y: 60, filter: "blur(12px)" }}
           whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          viewport={{ once: true, margin: "-8%" }}
-          transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+          viewport={{ once: false, margin: "-8%" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
           <SectionHeader
             badge="Knowledge Base"
@@ -98,8 +98,8 @@ export function MediaSection() {
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-5%" }}
-              transition={{ duration: 0.6, ease: [0.32, 0.72, 0, 1] }}
+              viewport={{ once: false, margin: "-5%" }}
+              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
               <div 
                 className="mb-16 cursor-pointer group"
@@ -206,7 +206,7 @@ export function MediaSection() {
                   variants={containerVariants}
                   initial="hidden"
                   whileInView="visible"
-                  viewport={{ once: true, margin: "-5%" }}
+                  viewport={{ once: false, margin: "-5%" }}
                 >
                   {otherArticles.map((article, index) => {
                     const Icon = typeIcons[article.type];

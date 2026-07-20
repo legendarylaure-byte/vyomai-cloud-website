@@ -83,7 +83,7 @@ export function Footer() {
         variants={containerVariants}
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-5%" }}
+        viewport={{ once: false, margin: "-5%" }}
       >
         {/* Top section with brand */}
         <motion.div className="mb-12" variants={itemVariants}>
@@ -107,7 +107,7 @@ export function Footer() {
               variants={containerVariants}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true }}
+              viewport={{ once: false }}
             >
               {visibleFooterLinks.map((link) => (
                 <motion.div key={link.href} variants={linkVariants}>
@@ -172,7 +172,7 @@ export function Footer() {
               variants={containerVariants}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true }}
+              viewport={{ once: false }}
             >
               {legalLinks.map((link) => (
                 <motion.div key={link.path} variants={linkVariants}>

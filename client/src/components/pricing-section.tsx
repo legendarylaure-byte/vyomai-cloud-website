@@ -58,7 +58,7 @@ const itemVariants = {
     opacity: 1,
     y: 0,
     filter: "blur(0px)",
-    transition: { duration: 0.6, ease: [0.32, 0.72, 0, 1] },
+    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
   },
   };
 
@@ -199,8 +199,8 @@ export function PricingSection() {
         <motion.div
           initial={{ opacity: 0, y: 60, filter: "blur(12px)" }}
           whileInView={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          viewport={{ once: true, margin: "-8%" }}
-          transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+          viewport={{ once: false, margin: "-8%" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
         >
           <SectionHeader
             badge="Flexible Pricing"
@@ -282,7 +282,7 @@ export function PricingSection() {
                 variants={containerVariants}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true, margin: "-5%" }}
+                viewport={{ once: false, margin: "-5%" }}
               >
               {packages.filter(pkg => pkg.enabled !== false).map((pkg, index) => (
               <motion.div
@@ -406,7 +406,7 @@ export function PricingSection() {
                                 initial={{ height: 0, opacity: 0 }}
                                 animate={{ height: "auto", opacity: 1 }}
                                 exit={{ height: 0, opacity: 0 }}
-                                transition={{ duration: 0.3, ease: [0.32, 0.72, 0, 1] }}
+                                transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                                 className="overflow-hidden"
                               >
                               <div className="space-y-2 mb-3 pt-2">

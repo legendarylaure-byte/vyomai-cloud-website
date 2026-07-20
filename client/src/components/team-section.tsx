@@ -83,7 +83,7 @@ export function TeamSection() {
               variants={containerVariants}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: "-8%" }}
+              viewport={{ once: false, margin: "-8%" }}
             >
               {publishedMembers.map((member) => {
                 const roleEmoji = roleIcons[member.role] || "⭐";

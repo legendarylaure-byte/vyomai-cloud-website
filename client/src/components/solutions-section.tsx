@@ -59,7 +59,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, x: -40 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.32, 0.72, 0, 1] } },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
 };
 
 const featureVariants = {
@@ -69,7 +69,7 @@ const featureVariants = {
 
 const featureItem = {
   hidden: { opacity: 0, x: -10 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: [0.32, 0.72, 0, 1] } },
+  visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
 };
 
 export function SolutionsSection() {
@@ -133,7 +133,7 @@ export function SolutionsSection() {
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-100px" }}
+            viewport={{ once: false, margin: "-100px" }}
           >
             {displaySolutions.map((solution: any, index) => {
               const IconComponent = iconMap[solution.icon] || Building2;
@@ -145,7 +145,7 @@ export function SolutionsSection() {
                 <motion.div
                   key={solution.id || index}
                   variants={itemVariants}
-                  className="metallic-card gradient-brand-subtle rounded-2xl p-6 sm:p-8 hover-elevate transition-all duration-300 overflow-visible card-glow shimmer-hover solutions-card-tilt"
+                  className="metallic-card gradient-brand-subtle rounded-2xl p-6 sm:p-8 hover-elevate transition-all duration-300 overflow-visible card-glow shimmer-hover solutions-card-tilt group"
                   data-testid={`card-solution-${index}`}
                 >
                   <div
@@ -168,7 +168,7 @@ export function SolutionsSection() {
                     variants={featureVariants}
                     initial="hidden"
                     whileInView="visible"
-                    viewport={{ once: true }}
+                    viewport={{ once: false }}
                   >
                     {features.map((feature: string, i: number) => (
                       <motion.li key={i} className="flex items-start gap-3" variants={featureItem}>
@@ -198,8 +198,8 @@ export function SolutionsSection() {
             className="mt-10 sm:mt-16 gradient-brand-subtle rounded-2xl p-8 sm:p-12 text-center border border-black/5 dark:border-white/8 relative overflow-hidden group hover-elevate"
             initial={{ opacity: 0, y: 60, filter: "blur(12px)", scale: 0.92 }}
             whileInView={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
-            viewport={{ once: true, margin: "-8%" }}
-            transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+            viewport={{ once: false, margin: "-8%" }}
+            transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className="absolute inset-0 gradient-brand opacity-5 group-hover:opacity-10 transition-all duration-300" />
             <div className="relative z-10">

@@ -95,7 +95,7 @@ export function FaqSection() {
             className="flex flex-wrap justify-center gap-2 mb-8"
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
+            viewport={{ once: false }}
             transition={{ duration: 0.5, delay: 0.2 }}
           >
             {categories.map((cat) => (
@@ -120,7 +120,7 @@ export function FaqSection() {
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, margin: "-10%" }}
+          viewport={{ once: false, margin: "-10%" }}
         >
           {filtered.length === 0 ? (
             <div className="text-center py-12 space-y-4">

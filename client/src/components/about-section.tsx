@@ -42,7 +42,7 @@ const containerVariants = {
 
 const itemVariants = {
   hidden: { opacity: 0, y: 50, filter: "blur(10px)", scale: 0.95 },
-  visible: { opacity: 1, y: 0, filter: "blur(0px)", scale: 1, transition: { duration: 0.7, ease: [0.32, 0.72, 0, 1] } },
+  visible: { opacity: 1, y: 0, filter: "blur(0px)", scale: 1, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
 };
 
 const checklistVariants = {
@@ -52,7 +52,7 @@ const checklistVariants = {
 
 const checklistItem = {
   hidden: { opacity: 0, x: -24, filter: "blur(6px)" },
-  visible: { opacity: 1, x: 0, filter: "blur(0px)", transition: { duration: 0.6, ease: [0.32, 0.72, 0, 1] } },
+  visible: { opacity: 1, x: 0, filter: "blur(0px)", transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] } },
 };
 
 export function AboutSection() {
@@ -108,8 +108,8 @@ export function AboutSection() {
             <motion.div
               initial={{ opacity: 0, x: -50, filter: "blur(10px)" }}
               whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "-8%" }}
-              transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+              viewport={{ once: false, margin: "-8%" }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             >
               <SectionHeader
                 badge={badgeText}
@@ -122,8 +122,8 @@ export function AboutSection() {
               className="relative"
               initial={{ opacity: 0, x: 50, filter: "blur(10px)" }}
               whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "-8%" }}
-              transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1], delay: 0.12 }}
+              viewport={{ once: false, margin: "-8%" }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.12 }}
             >
               <div className="video-glow rounded-2xl">
                 <video
@@ -146,7 +146,7 @@ export function AboutSection() {
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
-            viewport={{ once: true, margin: "-5%" }}
+            viewport={{ once: false, margin: "-5%" }}
           >
             {displayValues.map((value: any, index) => {
               const IconComponent = iconMap[value.icon] || Target;
@@ -173,8 +173,8 @@ export function AboutSection() {
             className="mt-16"
             initial={{ opacity: 0, y: 60, filter: "blur(12px)", scale: 0.92 }}
             whileInView={{ opacity: 1, y: 0, filter: "blur(0px)", scale: 1 }}
-            viewport={{ once: true, margin: "-5%" }}
-            transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1] }}
+            viewport={{ once: false, margin: "-5%" }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
           >
             <div className="grid lg:grid-cols-2 gap-8 items-center">
               {/* Left: Checklist in glass card */}
@@ -183,7 +183,7 @@ export function AboutSection() {
                 variants={checklistVariants}
                 initial="hidden"
                 whileInView="visible"
-                viewport={{ once: true }}
+                viewport={{ once: false }}
               >
                 <h3 className="text-2xl sm:text-3xl font-bold mb-4 font-display text-foreground">
                   Why Choose VyomAi?
@@ -214,8 +214,8 @@ export function AboutSection() {
               <motion.div
                 initial={{ opacity: 0, x: 40, filter: "blur(8px)" }}
                 whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-                viewport={{ once: true, margin: "-5%" }}
-                transition={{ duration: 0.8, ease: [0.32, 0.72, 0, 1], delay: 0.2 }}
+                viewport={{ once: false, margin: "-5%" }}
+                transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1], delay: 0.2 }}
               >
                 <div className="aspect-[4/3] rounded-2xl metallic-card vyom-box flex items-center justify-center overflow-hidden">
                   <div className="absolute inset-4 rounded-xl mandala-pattern opacity-30 mandala-hover-rotate" />

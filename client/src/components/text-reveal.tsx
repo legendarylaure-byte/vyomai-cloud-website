@@ -21,7 +21,7 @@ export function TextReveal({
   gradient = false,
 }: TextRevealProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const isInView = useInView(ref, { once: false, margin: "-10%" });
 
   const text = children;
   let items: string[];
@@ -50,10 +50,10 @@ export function TextReveal({
       opacity: 1,
       y: 0,
       filter: "blur(0px)",
-      transition: {
-        duration: 0.5,
-        ease: [0.32, 0.72, 0, 1],
-      },
+        transition: {
+          duration: 0.6,
+          ease: [0.16, 1, 0.3, 1],
+        },
     },
   };
 
@@ -97,7 +97,7 @@ export function SectionHeader({
   direction = "up",
 }: SectionHeaderProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const isInView = useInView(ref, { once: false, margin: "-10%" });
 
   const container = {
     hidden: {},

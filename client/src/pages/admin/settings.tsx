@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { type SiteSettings, type User } from "@shared/schema";
 import { 
-  Save, Loader2, Settings, PenLine, Globe, Shield, Lock, Server, Smartphone, Mail, QrCode
+  Save, Loader2, Settings, PenLine, Globe, Shield, Lock, Server, Smartphone, Mail, QrCode, Sparkles, Eye
 } from "lucide-react";
 import {
   Dialog,
@@ -356,6 +356,119 @@ export function SettingsPage() {
               Verifies AI content generation and delivery.
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Welcome Popup Settings */}
+      <Card className="border-gray-200 shadow-sm">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-gray-900 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-purple-600" />
+            Welcome Popup Settings
+          </CardTitle>
+          <CardDescription className="text-gray-500">
+            Configure the welcome popup that appears when users visit the site
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex items-center justify-between p-4 rounded-xl bg-purple-50 border border-purple-100">
+            <div>
+              <Label className="text-base font-semibold text-gray-900">Enable Popup</Label>
+              <p className="text-sm text-muted-foreground">
+                {popupEnabled ? "Popup is visible to visitors" : "Popup is hidden"}
+              </p>
+            </div>
+            <Switch
+              checked={popupEnabled}
+              onCheckedChange={setPopupEnabled}
+            />
+          </div>
+
+          {popupEnabled && (
+            <div className="space-y-4 pl-2 border-l-2 border-purple-200 pl-4">
+              <div className="space-y-2">
+                <Label htmlFor="popupTitle">Title</Label>
+                <input
+                  id="popupTitle"
+                  value={popupTitle}
+                  onChange={(e) => setPopupTitle(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Welcome to VyomAi"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="popupMessage">Message</Label>
+                <textarea
+                  id="popupMessage"
+                  value={popupMessage}
+                  onChange={(e) => setPopupMessage(e.target.value)}
+                  className="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Experience the future of AI solutions..."
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="popupButtonText">Button Text</Label>
+                  <input
+                    id="popupButtonText"
+                    value={popupButtonText}
+                    onChange={(e) => setPopupButtonText(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    placeholder="Explore Now"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="popupAnimationStyle">Animation Style</Label>
+                  <select
+                    id="popupAnimationStyle"
+                    value={popupAnimationStyle}
+                    onChange={(e) => setPopupAnimationStyle(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  >
+                    <option value="fade">Fade In</option>
+                    <option value="slide">Slide Up</option>
+                    <option value="zoom">Zoom In</option>
+                    <option value="glow">Glow Effect</option>
+                    <option value="bounce">Bounce</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="popupImageUrl">Image URL (optional)</Label>
+                <input
+                  id="popupImageUrl"
+                  value={popupImageUrl}
+                  onChange={(e) => setPopupImageUrl(e.target.value)}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/50 border border-gray-100">
+                <div>
+                  <Label className="text-sm">Dismissable</Label>
+                  <p className="text-xs text-muted-foreground">Allow users to close the popup</p>
+                </div>
+                <Switch
+                  checked={popupDismissable}
+                  onCheckedChange={setPopupDismissable}
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-white/50 border border-gray-100">
+                <div>
+                  <Label className="text-sm">Preview</Label>
+                  <p className="text-xs text-muted-foreground">See how the popup looks</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowPreview(true)}
+                >
+                  <Eye className="w-4 h-4 mr-1" />
+                  Preview
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

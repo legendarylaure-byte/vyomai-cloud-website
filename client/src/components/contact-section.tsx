@@ -30,7 +30,7 @@ const formFieldVariants = {
 
 const fieldVariant = {
   hidden: { opacity: 0, y: 60, filter: "blur(12px)", scale: 0.92 },
-  visible: { opacity: 1, y: 0, filter: "blur(0px)", scale: 1, transition: { duration: 0.7, ease: [0.32, 0.72, 0, 1] } },
+  visible: { opacity: 1, y: 0, filter: "blur(0px)", scale: 1, transition: { duration: 0.7, ease: [0.16, 1, 0.3, 1] } },
 };
 
 export function ContactSection() {
@@ -121,7 +121,7 @@ export function ContactSection() {
               variants={formFieldVariants}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: "-5%" }}
+              viewport={{ once: false, margin: "-5%" }}
             >
               {infoCards.map((card, i) => (
                 <motion.div key={i} variants={fieldVariant} className="mb-6">
@@ -161,8 +161,8 @@ export function ContactSection() {
             <motion.div
               initial={{ opacity: 0, x: 60, filter: "blur(12px)" }}
               whileInView={{ opacity: 1, x: 0, filter: "blur(0px)" }}
-              viewport={{ once: true, margin: "-8%" }}
-              transition={{ duration: 0.7, ease: [0.32, 0.72, 0, 1] }}
+              viewport={{ once: false, margin: "-8%" }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
             >
               <div className="metallic-card rounded-2xl p-8">
                 <h3 className="text-2xl font-bold mb-6 font-display text-foreground">
